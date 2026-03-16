@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080c14">
+<title>WordNet · 考研词图谱</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/force-graph@1.43.5/dist/force-graph.min.js"></script>
+
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  --ink:    #080c14;
+  --glass:  rgba(12,16,28,0.92);
+  --border: rgba(255,255,255,0.07);
+  --text:   #d4cfc4;
+  --muted:  #4a4f62;
+  --serif:  'Lora', Georgia, serif;
+  --mono:   'DM Mono', 'Courier New', monospace;
+}
+
+html, body { width:100%; height:100%; background:var(--ink); overflow:hidden; }
+
+/* ══ PAGE SYSTEM ══ */
+.page { position:fixed; inset:0; transition: opacity .3s ease, transform .3s ease; }
+.page.off { opacity:0; pointer-events:none; transform:scale(1.03); }
+
+/* ══════════════════════════════════
+   PAGE 1 — THEME MAP
+══════════════════════════════════ */
+#p-map {
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, #0f1729 0%, var(--ink) 70%);
+}
+
+#map-header {
+  padding: max(env(safe-area-inset-top),24px) 22px 0;
+}
+.map-eyebrow {
+  font-family:var(--mono); font-size:10px;
+  letter-spacing:.22em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px;
+}
+.map-title {
+  font-family:var(--serif); font-size:clamp(30px,8vw,44px);
+  font-weight:400; line-height:1.1; color:var(--text);
+}
+.map-title em { font-style:italic; color:#c6a84b; }
+.map-sub {
+  font-family:var(--mono); font-size:11px;
+  letter-spacing:.12em; color:var(--muted);
+  margin-top:8px;
+}
+
+/* Grid */
+#theme-grid {
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:12px;
+  padding:20px 22px max(env(safe-area-inset-bottom),32px);
+}
+.tc {
+  position:relative; overflow:hidden;
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:20px 18px 18px;
+  cursor:pointer;
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), border-color .2s;
+  -webkit-user-select:none;
+}
+.tc:first-child { grid-column: span 2; }
+.tc:active { transform: scale(.95); }
+.tc:hover { border-color:rgba(255,255,255,.14); transform:translateY(-2px); }
+
+.tc-aurora {
+  position:absolute; top:-30px; right:-30px;
+  width:110px; height:110px; border-radius:50%;
+  filter:blur(36px); opacity:.22; pointer-events:none;
+}
+.tc-icon { font-size:28px; display:block; margin-bottom:12px; }
+.tc-name { font-family:var(--serif); font-size:17px; font-weight:600; line-height:1.2; margin-bottom:5px; }
+.tc-hint { font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--muted); margin-bottom:12px; }
+.tc-pill {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--mono); font-size:10px; letter-spacing:.08em;
+  padding:3px 10px; border-radius:20px;
+  border-width:1px; border-style:solid;
+}
+.tc-pill-dot { width:5px; height:5px; border-radius:50%; }
+
+/* ══════════════════════════════════
+   PAGE 2 — GRAPH
+══════════════════════════════════ */
+#p-graph { background:var(--ink); }
+#fg-wrap { position:absolute; inset:0; }
+
+/* Topbar */
+#topbar {
+  position:absolute; top:0; left:0; right:0; z-index:20;
+  padding: max(env(safe-area-inset-top),14px) 16px 0;
+  background:linear-gradient(to bottom,rgba(8,12,20,.92) 55%,transparent);
+  pointer-events:none;
+}
+#topbar-row { display:flex; align-items:center; gap:10px; padding-bottom:12px; }
+#btn-back {
+  pointer-events:all;
+  width:38px; height:38px; border-radius:50%;
+  background:rgba(255,255,255,.06); border:1px solid var(--border);
+  color:var(--text); font-size:17px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s; flex-shrink:0;
+}
+#btn-back:active { background:rgba(255,255,255,.12); }
+#tbar-info { flex:1; min-width:0; }
+#tbar-name { font-family:var(--serif); font-size:18px; font-weight:600; color:var(--text); }
+#tbar-stat { font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+
+/* hint */
+#g-hint {
+  position:absolute; bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
+  left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:10px;
+  letter-spacing:.2em; text-transform:uppercase;
+  color:rgba(255,255,255,.13); white-space:nowrap;
+  pointer-events:none; transition:opacity .4s; z-index:5;
+}
+
+/* ══════════════════════════════════
+   BOTTOM SHEET
+══════════════════════════════════ */
+#sheet-overlay { position:fixed; inset:0; z-index:80; display:none; }
+#sheet-overlay.on { display:block; }
+
+#bottom-sheet {
+  position:fixed; left:0; right:0; bottom:0; z-index:90;
+  transform:translateY(110%);
+  transition:transform .38s cubic-bezier(.32,.72,0,1);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+#bottom-sheet.open { transform:translateY(0); }
+
+#bs-inner {
+  background:rgba(11,14,24,0.98);
+  border:1px solid rgba(255,255,255,.08);
+  border-bottom:none;
+  border-radius:22px 22px 0 0;
+  overflow:hidden;
+  backdrop-filter:blur(30px);
+}
+#bs-drag {
+  width:36px; height:4px; border-radius:2px;
+  background:rgba(255,255,255,.12);
+  margin:11px auto 0;
+}
+
+/* Card image */
+#bs-img-zone {
+  position:relative; height:148px;
+  background:#0a0d1a; overflow:hidden;
+}
+#bs-img {
+  width:100%; height:100%; object-fit:cover;
+  display:block; opacity:0; transition:opacity .3s;
+}
+#bs-img.loaded { opacity:1; }
+#bs-img-placeholder {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:48px; opacity:.1;
+}
+#bs-img-fade {
+  position:absolute; inset:0;
+  background:linear-gradient(to bottom,transparent 20%,rgba(11,14,24,.98) 100%);
+}
+#bs-word-big {
+  position:absolute; bottom:12px; left:18px;
+  font-family:var(--serif); font-size:28px;
+  font-weight:400; font-style:italic;
+  color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.9);
+}
+#bs-pos-tag {
+  position:absolute; top:12px; right:14px;
+  font-family:var(--mono); font-size:9px;
+  letter-spacing:.16em; text-transform:uppercase;
+  padding:3px 10px; border-radius:20px;
+}
+
+/* Card body */
+#bs-body { padding:14px 18px 18px; }
+#bs-phon-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+#bs-phonetic { font-family:var(--mono); font-size:13px; color:#6a6e8a; flex:1; }
+#bs-speak {
+  width:34px; height:34px; border-radius:50%;
+  border:none; cursor:pointer; font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .15s;
+}
+#bs-speak:active { transform:scale(.88); }
+
+/* Logic tag */
+#bs-logic-tag {
+  display:inline-block;
+  font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+  padding:5px 12px; border-radius:8px;
+  margin-bottom:11px;
+}
+
+#bs-meaning {
+  font-family:var(--serif); font-size:16px; line-height:1.7;
+  color:#ccc8e0; padding-left:12px;
+  border-left-width:3px; border-left-style:solid;
+  margin-bottom:15px;
+}
+#bs-rel-label {
+  font-family:var(--mono); font-size:10px;
+  letter-spacing:.18em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:8px;
+}
+#bs-chips { display:flex; flex-wrap:wrap; gap:7px; }
+.bs-chip {
+  font-family:var(--mono); font-size:11px;
+  padding:5px 13px; border-radius:20px;
+  cursor:pointer; border-width:1px; border-style:solid;
+  transition:transform .15s;
+}
+.bs-chip:active { transform:scale(.93); }
+
+/* ══ LOADING ══ */
+#loader {
+  position:fixed; inset:0; z-index:999;
+  background:var(--ink);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:14px;
+  transition:opacity .4s;
+}
+#loader.gone { opacity:0; pointer-events:none; }
+.lr { width:42px; height:42px; border-radius:50%; border:1.5px solid rgba(198,168,75,.15); border-top-color:#c6a84b; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.lt { font-family:var(--mono); font-size:10px; letter-spacing:.2em; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="lr"></div><div class="lt">LOADING</div></div>
+
+<!-- ═══ PAGE 1: THEME MAP ═══ -->
+<div class="page" id="p-map">
+  <div id="map-header">
+    <div class="map-eyebrow">考研核心词图谱</div>
+    <div class="map-title">Word<em>Net</em></div>
+    <div class="map-sub">选择主题 · 进入神经图谱</div>
+  </div>
+  <div id="theme-grid"></div>
+</div>
+
+<!-- ═══ PAGE 2: GRAPH ═══ -->
+<div class="page off" id="p-graph">
+  <div id="fg-wrap"></div>
+  <div id="topbar">
+    <div id="topbar-row">
+      <button id="btn-back" onclick="goBack()">←</button>
+      <div id="tbar-info">
+        <div id="tbar-name"></div>
+        <div id="tbar-stat"></div>
+      </div>
+    </div>
+  </div>
+  <div id="g-hint">点击词汇 · 双指缩放 · 可拖拽</div>
+</div>
+
+<!-- ═══ BOTTOM SHEET ═══ -->
+<div id="sheet-overlay" onclick="closeSheet()"></div>
+<div id="bottom-sheet">
+  <div id="bs-inner">
+    <div id="bs-drag"></div>
+    <div id="bs-img-zone">
+      <div id="bs-img-placeholder">📖</div>
+      <img id="bs-img" src="" alt="">
+      <div id="bs-img-fade"></div>
+      <div id="bs-word-big"></div>
+      <div id="bs-pos-tag"></div>
+    </div>
+    <div id="bs-body">
+      <div id="bs-phon-row">
+        <span id="bs-phonetic"></span>
+        <button id="bs-speak" onclick="speakWord()">♪</button>
+      </div>
+      <div id="bs-logic-tag"></div>
+      <div id="bs-meaning"></div>
+      <div id="bs-rel-label">关联词汇</div>
+      <div id="bs-chips"></div>
+    </div>
+  </div>
+</div>
+<script src="./data.js"></script>
+<script>
+// ══════════════════════════════════════════════════
+// DATA — 对应你的 Excel 结构
+// 每个主题: { label, en, icon, color, nodes[], links[] }
+// node: { id, type:'root'|'word', name(显示), zh, ph, pos, img, logic, related[] }
+// link: { source, target }
+// ══════════════════════════════════════════════════
+// Example data structure in data.js
+
+// ══════════════════════════════════════════════════
+// BUILD WORD LOOKUP MAP
+// ══════════════════════════════════════════════════
+const WORD_MAP = {};
+Object.entries(DB).forEach(([tid, theme]) => {
+  theme.nodes.forEach(n => {
+    WORD_MAP[n.id] = { ...n, themeId: tid, themeColor: theme.color, themeIcon: theme.icon };
+  });
+});
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let FG = null;
+let currentThemeId = null;
+let currentWord = null;
+let activeNodeId = null;   
+
+// ══════════════════════════════════════════════════
+// PAGE 1 — THEME GRID
+// ══════════════════════════════════════════════════
+function buildGrid() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = Object.entries(DB).map(([id, t]) => `
+    <div class="tc" onclick="openTheme('${id}')" style="--ac:${t.color}">
+      <div class="tc-aurora" style="background:${t.color}"></div>
+      <span class="tc-icon">${t.icon}</span>
+      <div class="tc-name" style="color:${t.color}">${t.label}</div>
+      <div class="tc-hint" style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:12px">${t.en} · ${t.nodes.length} 词</div>
+      <div class="tc-pill" style="border-color:${t.color}44;color:${t.color};background:${t.color}11">
+        <div class="tc-pill-dot" style="background:${t.color}"></div>
+        点击进入
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════
+// PAGE 2 — GRAPH
+// ══════════════════════════════════════════════════
+function openTheme(themeId) {
+  const theme = DB[themeId];
+  if (!theme) return;
+  currentThemeId = themeId;
+
+  document.getElementById('tbar-name').textContent = `${theme.icon} ${theme.label}`;
+  document.getElementById('tbar-stat').textContent = `${theme.nodes.length} 词 · 触摸节点查看`;
+
+  // Switch page
+  document.getElementById('p-map').classList.add('off');
+  document.getElementById('p-graph').classList.remove('off');
+
+  setTimeout(() => renderGraph(theme), 80);
+}
+
+function renderGraph(theme) {
+  const wrap = document.getElementById('fg-wrap');
+  wrap.innerHTML = '';
+
+  const W = window.innerWidth, H = window.innerHeight;
+  const isMobile = W < 600;
+
+  // Clone data (force-graph mutates)
+  const graphData = {
+    nodes: theme.nodes.map(n => ({ ...n })),
+    links: theme.links.map(l => ({ ...l }))
+  };
+
+  FG = ForceGraph()(wrap)
+    .width(W).height(H)
+    .backgroundColor('#080c14')
+
+    // ── Links: glowing particle effect ──
+    .linkColor(() => theme.color + '30')
+    .linkWidth(1)
+    .linkDirectionalParticles(4)
+    .linkDirectionalParticleWidth(2.5)
+    .linkDirectionalParticleColor(() => theme.color)
+    .linkDirectionalParticleSpeed(0.006)
+
+    // ── Nodes: text only, no bubbles ──
+    .nodeCanvasObject((node, ctx, globalScale) => {
+      const isRoot = node.type === 'root';
+      const label  = node.name;
+      const zh     = node.zh ? node.zh.split('；')[0] : '';
+
+      // Font sizing
+      const enSize = Math.max(isMobile ? 11 : 13, (isMobile ? 11 : 13) / globalScale);
+      const zhSize = Math.max(isMobile ? 8  : 10, (isMobile ? 8 : 10)  / globalScale);
+
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Halo for root nodes
+      if (isRoot) {
+        const haloR = enSize * 2.4;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
+        const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloR);
+        grad.addColorStop(0, theme.color + '28');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      // ── 激活节点：扩散光环 ──
+      if (node.id === activeNodeId) {
+        // 外层大光晕（神经元激活扩散感）
+        const pulseR = enSize * 4.5;
+        const pulseGrad = ctx.createRadialGradient(node.x, node.y, enSize * 0.5, node.x, node.y, pulseR);
+        pulseGrad.addColorStop(0, theme.color + '50');
+        pulseGrad.addColorStop(0.4, theme.color + '22');
+        pulseGrad.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, pulseR, 0, 2 * Math.PI);
+        ctx.fillStyle = pulseGrad;
+        ctx.fill();
+
+        // 中层亮环（边缘锐利）
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, enSize * 2, 0, 2 * Math.PI);
+        ctx.strokeStyle = theme.color + 'cc';
+        ctx.lineWidth = 1.5 / globalScale;
+        ctx.stroke();
+      }
+
+      // Subtle dot center（原有代码保留）
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, isRoot ? 4 : 2.5, 0, 2 * Math.PI);
+      ctx.fillStyle = isRoot
+        ? (node.id === activeNodeId ? '#fff' : theme.color)
+        : (node.id === activeNodeId ? '#fff' : theme.color + 'aa');
+      ctx.fill();
+
+      // EN label
+      ctx.font = `${isRoot ? 700 : 400} ${enSize}px 'DM Mono', monospace`;
+      ctx.fillStyle = isRoot ? '#fff' : theme.color + 'dd';
+      ctx.fillText(label, node.x, node.y - zhSize * 0.8);
+
+      // ZH label
+      if (globalScale > 0.55 && zh) {
+        ctx.font = `300 ${zhSize}px 'Lora', serif`;
+        ctx.fillStyle = isRoot ? theme.color + 'cc' : 'rgba(200,195,215,0.55)';
+        ctx.fillText(zh, node.x, node.y + enSize * 0.85);
+      }
+
+      // Pointer area
+      node.__r = enSize * 3.5;
+    })
+    .nodePointerAreaPaint((node, color, ctx) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.__r || 20, 0, 2 * Math.PI);
+      ctx.fill();
+    })
+
+    // ── Interactions ──
+    .onNodeClick(node => {
+      // 防止重复点击同一节点
+      if (activeNodeId === node.id) {
+        showCard(node.id);
+        return;
+      }
+
+      activeNodeId = node.id;
+
+      // ── 第一阶段（0ms）：镜头开始滑向节点，同时轻微缩小形成"呼吸感" ──
+      const currentZoom = FG.zoom();
+      const targetZoom  = Math.min(currentZoom * 1.0, 2.2); // 先保持当前zoom
+      FG.centerAt(node.x, node.y, 600);   // 600ms 平滑滑向节点
+
+      // ── 第二阶段（300ms）：镜头到达一半时开始zoom in，像神经元激活聚焦 ──
+      setTimeout(() => {
+        const zoomIn = Math.min((FG.zoom() || 1) * 1.35, 2.8);
+        FG.zoom(zoomIn, 400);             // 400ms zoom in
+      }, 300);
+
+      // ── 第三阶段（550ms）：视觉稳定后弹出卡片，节奏感完整 ──
+      setTimeout(() => {
+        showCard(node.id);
+      }, 550);
+
+      // 触发重绘（显示激活光晕）
+      FG.refresh?.();
+    })
+    .onBackgroundClick(() => closeSheet())
+
+    .graphData(graphData);
+
+  // Force tuning
+  FG.d3Force('charge').strength(isMobile ? -280 : -380);
+  FG.d3Force('link').distance(isMobile ? 70 : 95);
+
+  // Auto fit after physics settle
+  setTimeout(() => {
+    FG.zoomToFit(900, isMobile ? 40 : 60);
+  }, 1400);
+}
+
+function goBack() {
+  closeSheet();
+  if (FG) { FG._destructor?.(); FG = null; }
+  document.getElementById('fg-wrap').innerHTML = '';
+  document.getElementById('p-graph').classList.add('off');
+  document.getElementById('p-map').classList.remove('off');
+}
+
+window.addEventListener('resize', () => {
+  if (FG && currentThemeId) {
+    FG.width(window.innerWidth).height(window.innerHeight);
+  }
+});
+
+// ══════════════════════════════════════════════════
+// BOTTOM SHEET
+// ══════════════════════════════════════════════════
+function showCard(wordId) {
+  const w = WORD_MAP[wordId];
+  if (!w) return;
+  currentWord = wordId;
+
+  const color = w.themeColor;
+
+  // Image
+  const imgZone = document.getElementById('bs-img-zone');
+  const imgEl   = document.getElementById('bs-img');
+  const phEl    = document.getElementById('bs-img-placeholder');
+  
+  imgEl.classList.remove('loaded');
+
+  if (w.img && w.img.trim() !== '') {
+    // 如果你在 Excel 里配了图片，就加载真实图片
+    imgEl.onload  = () => imgEl.classList.add('loaded');
+    imgEl.onerror = () => imgEl.classList.remove('loaded'); // 失败则隐藏
+    imgEl.src = w.img;
+    imgZone.style.background = '#0a0d1a'; // 恢复默认黑色背景
+    phEl.textContent = ''; // 清空占位符
+  } else {
+    // 【终极降级方案】：如果没有图片，生成基于主题色的高级渐变背景
+    imgEl.src = '';
+    // 生成一个暗黑系的主题色渐变
+    imgZone.style.background = `linear-gradient(135deg, ${color}22 0%, #0a0d1a 100%)`;
+    // 中间显示该主题的 Icon（比如法律主题显示 ⚖️，经济显示 📈）
+    phEl.textContent = w.themeIcon || '✨';
+    // 让 Icon 稍微带点主题色的发光效果
+    phEl.style.color = `${color}44`; 
+    phEl.style.textShadow = `0 0 20px ${color}88`;
+  }
+
+  document.getElementById('bs-word-big').textContent = wordId;
+
+  const posTag = document.getElementById('bs-pos-tag');
+  posTag.textContent = w.pos || '';
+  posTag.style.cssText += `background:${color}22;border:1px solid ${color}55;color:${color};`;
+
+  document.getElementById('bs-phonetic').textContent = w.ph || '';
+
+  const spk = document.getElementById('bs-speak');
+  spk.style.background = color + '20';
+  spk.style.color = color;
+  spk.style.border = `1px solid ${color}44`;
+
+  // Logic tag
+  const logicTag = document.getElementById('bs-logic-tag');
+  logicTag.textContent = w.logic || '';
+  logicTag.style.cssText += `background:${color}15;border:1px solid ${color}35;color:${color};`;
+
+  const meaning = document.getElementById('bs-meaning');
+  meaning.textContent = w.zh || '';
+  meaning.style.borderLeftColor = color;
+
+  // Related chips
+  const chips = document.getElementById('bs-chips');
+  chips.innerHTML = (w.related || []).map(r => {
+    const rd = WORD_MAP[r];
+    if (!rd) return '';
+    const c = rd.themeColor;
+    return `<div class="bs-chip"
+      style="background:${c}12;border-color:${c}40;color:${c}"
+      onclick="closeSheet();setTimeout(()=>showCard('${r}'),200)"
+    >${r}</div>`;
+  }).join('');
+
+  document.getElementById('bottom-sheet').classList.add('open');
+  document.getElementById('sheet-overlay').classList.add('on');
+  document.getElementById('g-hint').style.opacity = '0';
+}
+
+function closeSheet() {
+  document.getElementById('bottom-sheet').classList.remove('open');
+  document.getElementById('sheet-overlay').classList.remove('on');
+  document.getElementById('g-hint').style.opacity = '1';
+  currentWord = null;
+  activeNodeId = null;   
+  FG?.refresh?.();       
+}
+
+// Swipe down to close
+let _sy = 0;
+document.getElementById('bs-inner').addEventListener('touchstart', e => { _sy = e.touches[0].clientY; }, {passive:true});
+document.getElementById('bs-inner').addEventListener('touchmove',  e => { if (e.touches[0].clientY - _sy > 65) closeSheet(); }, {passive:true});
+
+// ══════════════════════════════════════════════════
+// SPEECH
+// ══════════════════════════════════════════════════
+
+let currentAudio = null; // 用于存储当前的音频对象，避免重复播放重叠
+
+function speakWord() {
+  if (!currentWord) return;
+  const btn = document.getElementById('bs-speak');
+  
+  // 停止之前正在播放的声音
+  if(currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+  }
+
+  // 按钮动画提示
+  btn.textContent = '🔈';
+  btn.style.transform = 'scale(0.9)';
+  
+  // 调用有道词典 API (type=1 是英音，type=2 是美音)
+  const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(currentWord)}&type=1`;
+  currentAudio = new Audio(audioUrl);
+  
+  // 播放结束或报错时，恢复按钮状态
+  currentAudio.onended = () => { 
+      btn.textContent = '♪'; 
+      btn.style.transform = 'scale(1)';
+  };
+  currentAudio.onerror = () => { 
+      btn.textContent = '♪'; 
+      btn.style.transform = 'scale(1)';
+      console.warn('发音获取失败，请检查网络'); 
+  };
+  
+  currentAudio.play();
+}
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+buildGrid();
+setTimeout(() => document.getElementById('loader').classList.add('gone'), 600);
+</script>
+</body>
+</html>
