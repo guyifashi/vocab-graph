@@ -742,8 +742,8 @@
             const isRoot = node.type === 'root';
             const label = node.name;
             const zh = node.zh ? node.zh.split('；')[0] : '';
-            const enSize = Math.max(isMobile ? 11 : 13, (isMobile ? 11 : 13) / globalScale);
-            const zhSize = Math.max(isMobile ? 8 : 10, (isMobile ? 8 : 10) / globalScale);
+            const enSize = Math.max(isMobile ? 14 : 16, (isMobile ? 14 : 16) / globalScale);
+            const zhSize = Math.max(isMobile ? 11 : 12, (isMobile ? 11 : 12) / globalScale);
 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -807,7 +807,7 @@
           .nodePointerAreaPaint((node, color, ctx, globalScale) => {
             ctx.fillStyle = color;
             const isMobile = window.innerWidth < 600;
-            const enSize = Math.max(isMobile ? 11 : 13, (isMobile ? 11 : 13) / globalScale);
+            const enSize = Math.max(isMobile ? 14 : 16, (isMobile ? 14 : 16) / globalScale);
 
             // Measure the actual width of the word
             ctx.font = `${node.type === 'root' ? 700 : 400} ${enSize}px 'DM Mono', monospace`;
