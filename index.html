@@ -1,655 +1,1128 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#080c14">
-<title>WordNet · 考研词图谱</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/force-graph@1.43.5/dist/force-graph.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#080c14">
+  <title>WordNet · 考研词图谱</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/force-graph@1.43.5/dist/force-graph.min.js"></script>
 
-<style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-:root {
-  --ink:    #080c14;
-  --glass:  rgba(12,16,28,0.92);
-  --border: rgba(255,255,255,0.07);
-  --text:   #d4cfc4;
-  --muted:  #4a4f62;
-  --serif:  'Lora', Georgia, serif;
-  --mono:   'DM Mono', 'Courier New', monospace;
-}
+    :root {
+      --ink: #080c14;
+      --glass: rgba(12, 16, 28, 0.92);
+      --border: rgba(255, 255, 255, 0.07);
+      --text: #d4cfc4;
+      --muted: #4a4f62;
+      --serif: 'Lora', Georgia, serif;
+      --mono: 'DM Mono', 'Courier New', monospace;
+    }
 
-html, body { width:100%; height:100%; background:var(--ink); overflow:hidden; }
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      background: var(--ink);
+      overflow: hidden;
+    }
 
-/* ══ PAGE SYSTEM ══ */
-.page { position:fixed; inset:0; transition: opacity .3s ease, transform .3s ease; }
-.page.off { opacity:0; pointer-events:none; transform:scale(1.03); }
+    /* ══ PAGE SYSTEM ══ */
+    .page {
+      position: fixed;
+      inset: 0;
+      transition: opacity .3s ease, transform .3s ease;
+    }
 
-/* ══════════════════════════════════
+    .page.off {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.03);
+    }
+
+    /* ══════════════════════════════════
    PAGE 1 — THEME MAP
 ══════════════════════════════════ */
-#p-map {
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
-  background: radial-gradient(ellipse 100% 60% at 50% 0%, #0f1729 0%, var(--ink) 70%);
-}
+    #p-map {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: radial-gradient(ellipse 100% 60% at 50% 0%, #0f1729 0%, var(--ink) 70%);
+    }
 
-#map-header {
-  padding: max(env(safe-area-inset-top),24px) 22px 0;
-}
-.map-eyebrow {
-  font-family:var(--mono); font-size:10px;
-  letter-spacing:.22em; text-transform:uppercase;
-  color:var(--muted); margin-bottom:10px;
-}
-.map-title {
-  font-family:var(--serif); font-size:clamp(30px,8vw,44px);
-  font-weight:400; line-height:1.1; color:var(--text);
-}
-.map-title em { font-style:italic; color:#c6a84b; }
-.map-sub {
-  font-family:var(--mono); font-size:11px;
-  letter-spacing:.12em; color:var(--muted);
-  margin-top:8px;
-}
+    #map-header {
+      padding: max(env(safe-area-inset-top), 24px) 22px 0;
+    }
 
-/* Grid */
-#theme-grid {
-  display:grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap:12px;
-  padding:20px 22px max(env(safe-area-inset-bottom),32px);
-}
-.tc {
-  position:relative; overflow:hidden;
-  background:rgba(255,255,255,0.03);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:20px 18px 18px;
-  cursor:pointer;
-  transition: transform .22s cubic-bezier(.34,1.56,.64,1), border-color .2s;
-  -webkit-user-select:none;
-}
-.tc:first-child { grid-column: span 2; }
-.tc:active { transform: scale(.95); }
-.tc:hover { border-color:rgba(255,255,255,.14); transform:translateY(-2px); }
+    .map-eyebrow {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
 
-.tc-aurora {
-  position:absolute; top:-30px; right:-30px;
-  width:110px; height:110px; border-radius:50%;
-  filter:blur(36px); opacity:.22; pointer-events:none;
-}
-.tc-icon { font-size:28px; display:block; margin-bottom:12px; }
-.tc-name { font-family:var(--serif); font-size:17px; font-weight:600; line-height:1.2; margin-bottom:5px; }
-.tc-hint { font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--muted); margin-bottom:12px; }
-.tc-pill {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:10px; letter-spacing:.08em;
-  padding:3px 10px; border-radius:20px;
-  border-width:1px; border-style:solid;
-}
-.tc-pill-dot { width:5px; height:5px; border-radius:50%; }
+    .map-title {
+      font-family: var(--serif);
+      font-size: clamp(30px, 8vw, 44px);
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--text);
+    }
 
-/* ══════════════════════════════════
+    .map-title em {
+      font-style: italic;
+      color: #c6a84b;
+    }
+
+    .map-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Grid */
+    #theme-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 20px 22px max(env(safe-area-inset-bottom), 32px);
+    }
+
+    .tc {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px 18px 18px;
+      cursor: pointer;
+      transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), border-color .2s;
+      -webkit-user-select: none;
+    }
+
+    .tc:first-child {
+      grid-column: span 2;
+    }
+
+    .tc:active {
+      transform: scale(.95);
+    }
+
+    .tc:hover {
+      border-color: rgba(255, 255, 255, .14);
+      transform: translateY(-2px);
+    }
+
+    .tc-aurora {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      filter: blur(36px);
+      opacity: .22;
+      pointer-events: none;
+    }
+
+    .tc-icon {
+      font-size: 28px;
+      display: block;
+      margin-bottom: 12px;
+    }
+
+    .tc-name {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 5px;
+    }
+
+    .tc-hint {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .tc-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border-width: 1px;
+      border-style: solid;
+    }
+
+    .tc-pill-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    /* ══════════════════════════════════
    PAGE 2 — GRAPH
 ══════════════════════════════════ */
-#p-graph { background:var(--ink); }
-#fg-wrap { position:absolute; inset:0; }
+    #p-graph {
+      background: var(--ink);
+    }
 
-/* Topbar */
-#topbar {
-  position:absolute; top:0; left:0; right:0; z-index:20;
-  padding: max(env(safe-area-inset-top),14px) 16px 0;
-  background:linear-gradient(to bottom,rgba(8,12,20,.92) 55%,transparent);
-  pointer-events:none;
-}
-#topbar-row { display:flex; align-items:center; gap:10px; padding-bottom:12px; }
-#btn-back {
-  pointer-events:all;
-  width:38px; height:38px; border-radius:50%;
-  background:rgba(255,255,255,.06); border:1px solid var(--border);
-  color:var(--text); font-size:17px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:background .15s; flex-shrink:0;
-}
-#btn-back:active { background:rgba(255,255,255,.12); }
-#tbar-info { flex:1; min-width:0; }
-#tbar-name { font-family:var(--serif); font-size:18px; font-weight:600; color:var(--text); }
-#tbar-stat { font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+    #fg-wrap {
+      position: absolute;
+      inset: 0;
+    }
 
-/* hint */
-#g-hint {
-  position:absolute; bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
-  left:50%; transform:translateX(-50%);
-  font-family:var(--mono); font-size:10px;
-  letter-spacing:.2em; text-transform:uppercase;
-  color:rgba(255,255,255,.13); white-space:nowrap;
-  pointer-events:none; transition:opacity .4s; z-index:5;
-}
+    /* Topbar */
+    #topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      padding: max(env(safe-area-inset-top), 14px) 16px 0;
+      background: linear-gradient(to bottom, rgba(8, 12, 20, .92) 55%, transparent);
+      pointer-events: none;
+    }
 
-/* ══════════════════════════════════
-   BOTTOM SHEET
+    #topbar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+    }
+
+    #btn-back {
+      pointer-events: all;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 17px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+
+    #btn-back:active {
+      background: rgba(255, 255, 255, .12);
+    }
+
+    #tbar-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #tbar-name {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    #tbar-stat {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* hint */
+    #g-hint {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .13);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity .4s;
+      z-index: 5;
+    }
+
+    /* ══════════════════════════════════
+   BOTTOM SHEET / POPOVER CARD
 ══════════════════════════════════ */
-#sheet-overlay { position:fixed; inset:0; z-index:80; display:none; }
-#sheet-overlay.on { display:block; }
+    #sheet-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      /* Subtle dark overlay for both mobile and desktop */
+      background: rgba(15, 18, 30, 0.45);
+      opacity: 0;
+      transition: opacity .3s;
+    }
 
-#bottom-sheet {
-  position:fixed; left:0; right:0; bottom:0; z-index:90;
-  transform:translateY(110%);
-  transition:transform .38s cubic-bezier(.32,.72,0,1);
-  padding-bottom:env(safe-area-inset-bottom,0);
-}
-#bottom-sheet.open { transform:translateY(0); }
+    #sheet-overlay.on {
+      display: block;
+      opacity: 1;
+    }
 
-#bs-inner {
-  background:rgba(11,14,24,0.98);
-  border:1px solid rgba(255,255,255,.08);
-  border-bottom:none;
-  border-radius:22px 22px 0 0;
-  overflow:hidden;
-  backdrop-filter:blur(30px);
-}
-#bs-drag {
-  width:36px; height:4px; border-radius:2px;
-  background:rgba(255,255,255,.12);
-  margin:11px auto 0;
-}
+    #bottom-sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 90;
+      transform: translateY(110%);
+      transition: transform .4s cubic-bezier(.32, .72, 0, 1), opacity .3s;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
 
-/* Card image */
-#bs-img-zone {
-  position:relative; height:148px;
-  background:#0a0d1a; overflow:hidden;
-}
-#bs-img {
-  width:100%; height:100%; object-fit:cover;
-  display:block; opacity:0; transition:opacity .3s;
-}
-#bs-img.loaded { opacity:1; }
-#bs-img-placeholder {
-  position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:48px; opacity:.1;
-}
-#bs-img-fade {
-  position:absolute; inset:0;
-  background:linear-gradient(to bottom,transparent 20%,rgba(11,14,24,.98) 100%);
-}
-#bs-word-big {
-  position:absolute; bottom:12px; left:18px;
-  font-family:var(--serif); font-size:28px;
-  font-weight:400; font-style:italic;
-  color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.9);
-}
-#bs-pos-tag {
-  position:absolute; top:12px; right:14px;
-  font-family:var(--mono); font-size:9px;
-  letter-spacing:.16em; text-transform:uppercase;
-  padding:3px 10px; border-radius:20px;
-}
+    #bottom-sheet.open {
+      transform: translateY(0);
+    }
 
-/* Card body */
-#bs-body { padding:14px 18px 18px; }
-#bs-phon-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-#bs-phonetic { font-family:var(--mono); font-size:13px; color:#6a6e8a; flex:1; }
-#bs-speak {
-  width:34px; height:34px; border-radius:50%;
-  border:none; cursor:pointer; font-size:16px;
-  display:flex; align-items:center; justify-content:center;
-  transition:transform .15s;
-}
-#bs-speak:active { transform:scale(.88); }
+    #bs-inner {
+      background: rgba(15, 18, 30, 0.85);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-bottom: none;
+      border-radius: 32px 32px 0 0;
+      overflow: hidden;
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 60px);
+      /* Leave safe area */
+    }
 
-/* Logic tag */
-#bs-logic-tag {
-  display:inline-block;
-  font-family:var(--mono); font-size:11px; letter-spacing:.08em;
-  padding:5px 12px; border-radius:8px;
-  margin-bottom:11px;
-}
+    #bs-drag {
+      width: 40px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .2);
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
 
-#bs-meaning {
-  font-family:var(--serif); font-size:16px; line-height:1.7;
-  color:#ccc8e0; padding-left:12px;
-  border-left-width:3px; border-left-style:solid;
-  margin-bottom:15px;
-}
-#bs-rel-label {
-  font-family:var(--mono); font-size:10px;
-  letter-spacing:.18em; text-transform:uppercase;
-  color:var(--muted); margin-bottom:8px;
-}
-#bs-chips { display:flex; flex-wrap:wrap; gap:7px; }
-.bs-chip {
-  font-family:var(--mono); font-size:11px;
-  padding:5px 13px; border-radius:20px;
-  cursor:pointer; border-width:1px; border-style:solid;
-  transition:transform .15s;
-}
-.bs-chip:active { transform:scale(.93); }
+    /* ─── DESKTOP POPOVER MODE (>600px) ─── */
+    @media (min-width: 601px) {
+      #bottom-sheet {
+        position: absolute;
+        /* Relative to viewport/body but positioned via JS */
+        width: 320px;
+        transform: scale(0.9) translateY(10px);
+        opacity: 0;
+        pointer-events: none;
+        padding-bottom: 0;
+        transition: transform .3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity .25s ease-out;
+        /* Bouncy entry */
+        will-change: left, top, transform, opacity;
+      }
 
-/* ══ LOADING ══ */
-#loader {
-  position:fixed; inset:0; z-index:999;
-  background:var(--ink);
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:14px;
-  transition:opacity .4s;
-}
-#loader.gone { opacity:0; pointer-events:none; }
-.lr { width:42px; height:42px; border-radius:50%; border:1.5px solid rgba(198,168,75,.15); border-top-color:#c6a84b; animation:spin .8s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.lt { font-family:var(--mono); font-size:10px; letter-spacing:.2em; color:var(--muted); }
-</style>
+      #bottom-sheet.open {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      #bs-inner {
+        border-radius: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, .1);
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      }
+
+      #bs-drag {
+        display: none;
+        /* No drag handle on desktop */
+      }
+    }
+
+    /* Card image */
+    #bs-img-zone {
+      position: relative;
+      height: 180px;
+      /* 16:9 Ratio */
+      background: #0a0d1a;
+      overflow: hidden;
+      flex-shrink: 0;
+      padding: 14px;
+    }
+
+    #bs-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity .3s;
+      border-radius: 14px;
+    }
+
+    #bs-img.loaded {
+      opacity: 1;
+    }
+
+    #bs-img-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 54px;
+      opacity: .08;
+    }
+
+    #bs-img-fade {
+      position: absolute;
+      inset: 14px;
+      background: linear-gradient(to bottom, rgba(15, 18, 30, 0.25) 0%, rgba(15, 18, 30, 0.05) 40%, rgba(15, 18, 30, 0.9) 100%);
+      border-radius: 14px;
+    }
+
+    /* Word Title Row */
+    #bs-header-row {
+      position: absolute;
+      bottom: 12px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      z-index: 2;
+    }
+
+    #bs-word-big {
+      font-family: var(--serif);
+      font-size: 32px;
+      font-weight: 500;
+      font-style: italic;
+      color: #fff;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, .8);
+    }
+
+    #bs-pos-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      transform: translateY(-4px);
+      /* Vertical visual alignment */
+      backdrop-filter: blur(10px);
+    }
+
+    /* Card body */
+    #bs-body {
+      padding: 18px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      /* Prevents body scroll chaining */
+    }
+
+    /* Custom Scrollbar for Card Body */
+    #bs-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #bs-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #bs-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    #bs-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Unified Phonetic & Audio Pill */
+    #bs-phon-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px 6px 10px;
+      border-radius: 24px;
+      cursor: pointer;
+      width: fit-content;
+      transition: transform .15s, background .2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #bs-phon-row:active {
+      transform: scale(.95);
+    }
+
+    #bs-phonetic {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 500;
+    }
+
+    #bs-speak-icon {
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Logic tag */
+    #bs-logic-tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .08em;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 500;
+      width: fit-content;
+    }
+
+    #bs-meaning {
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1.6;
+      font-weight: 500;
+      color: #e4e1f0;
+      padding-left: 14px;
+      border-left-width: 3px;
+      border-left-style: solid;
+    }
+
+    #bs-rel-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: -4px;
+    }
+
+    /* Notes Card Style */
+    .notes-card {
+      font-family: var(--serif);
+      font-size: 14px;
+      line-height: 1.6;
+      color: #ccc8e0;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      width: 100%;
+      white-space: pre-wrap;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ══ LOADING ══ */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      transition: opacity .4s;
+    }
+
+    #loader.gone {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .lr {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(198, 168, 75, .15);
+      border-top-color: #c6a84b;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .lt {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .2em;
+      color: var(--muted);
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="loader"><div class="lr"></div><div class="lt">LOADING</div></div>
-
-<!-- ═══ PAGE 1: THEME MAP ═══ -->
-<div class="page" id="p-map">
-  <div id="map-header">
-    <div class="map-eyebrow">考研核心词图谱</div>
-    <div class="map-title">Word<em>Net</em></div>
-    <div class="map-sub">选择主题 · 进入神经图谱</div>
+  <div id="loader">
+    <div class="lr"></div>
+    <div class="lt">LOADING</div>
   </div>
-  <div id="theme-grid"></div>
-</div>
 
-<!-- ═══ PAGE 2: GRAPH ═══ -->
-<div class="page off" id="p-graph">
-  <div id="fg-wrap"></div>
-  <div id="topbar">
-    <div id="topbar-row">
-      <button id="btn-back" onclick="goBack()">←</button>
-      <div id="tbar-info">
-        <div id="tbar-name"></div>
-        <div id="tbar-stat"></div>
+  <!-- ═══ PAGE 1: THEME MAP ═══ -->
+  <div class="page" id="p-map">
+    <div id="map-header">
+      <div class="map-eyebrow">考研核心词图谱</div>
+      <div class="map-title">Word<em>Net</em></div>
+      <div class="map-sub">选择主题 · 进入神经图谱</div>
+    </div>
+    <div id="theme-grid"></div>
+  </div>
+
+  <!-- ═══ PAGE 2: GRAPH ═══ -->
+  <div class="page off" id="p-graph">
+    <div id="fg-wrap"></div>
+    <div id="topbar">
+      <div id="topbar-row">
+        <button id="btn-back" onclick="goBack()">←</button>
+        <div id="tbar-info">
+          <div id="tbar-name"></div>
+          <div id="tbar-stat"></div>
+        </div>
+      </div>
+    </div>
+    <div id="g-hint">点击词汇 · 双指缩放 · 可拖拽</div>
+  </div>
+
+  <!-- ═══ BOTTOM SHEET / POPOVER ═══ -->
+  <div id="sheet-overlay" onclick="closeSheet()"></div>
+  <div id="bottom-sheet">
+    <div id="bs-inner">
+      <div id="bs-drag"></div>
+      <div id="bs-img-zone">
+        <div id="bs-img-placeholder">📖</div>
+        <img id="bs-img" src="" alt="">
+        <div id="bs-img-fade"></div>
+        <div id="bs-header-row">
+          <div id="bs-word-big"></div>
+          <div id="bs-pos-tag"></div>
+        </div>
+      </div>
+      <div id="bs-body">
+        <div id="bs-phon-row" onclick="speakWord()">
+          <span id="bs-phonetic"></span>
+          <span id="bs-speak-icon">♪</span>
+        </div>
+        <div id="bs-logic-tag"></div>
+        <div id="bs-meaning"></div>
+        <div id="bs-rel-label">关联词汇</div>
+        <div id="bs-chips"></div>
       </div>
     </div>
   </div>
-  <div id="g-hint">点击词汇 · 双指缩放 · 可拖拽</div>
-</div>
+  <script src="./data.js"></script>
+  <script>
+    (() => {
+      "use strict";
 
-<!-- ═══ BOTTOM SHEET ═══ -->
-<div id="sheet-overlay" onclick="closeSheet()"></div>
-<div id="bottom-sheet">
-  <div id="bs-inner">
-    <div id="bs-drag"></div>
-    <div id="bs-img-zone">
-      <div id="bs-img-placeholder">📖</div>
-      <img id="bs-img" src="" alt="">
-      <div id="bs-img-fade"></div>
-      <div id="bs-word-big"></div>
-      <div id="bs-pos-tag"></div>
-    </div>
-    <div id="bs-body">
-      <div id="bs-phon-row">
-        <span id="bs-phonetic"></span>
-        <button id="bs-speak" onclick="speakWord()">♪</button>
+      // ══════════════════════════════════════════════════
+      // CORE UTILS & STATE & DOM CACHING
+      // ══════════════════════════════════════════════════
+      const escapeHTML = (str) => String(str || '').replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[match]));
+      const $ = (id) => document.getElementById(id);
+
+      const State = {
+        fg: null,
+        themeId: null,
+        wordId: null,
+        activeNodeId: null,
+        audio: null,
+        wordMap: {}
+      };
+
+      const DOM = {
+        grid: $('theme-grid'), pMap: $('p-map'), pGraph: $('p-graph'),
+        tbarName: $('tbar-name'), tbarStat: $('tbar-stat'), fgWrap: $('fg-wrap'),
+        sheetOverlay: $('sheet-overlay'), bottomSheet: $('bottom-sheet'), gHint: $('g-hint'),
+        loader: $('loader'), btnBack: $('btn-back'), bsInner: $('bs-inner'),
+        imgZone: $('bs-img-zone'), img: $('bs-img'), imgPlaceholder: $('bs-img-placeholder'),
+        wordBig: $('bs-word-big'), posTag: $('bs-pos-tag'), phonetic: $('bs-phonetic'),
+        phonRow: $('bs-phon-row'), speakIcon: $('bs-speak-icon'), logicTag: $('bs-logic-tag'), meaning: $('bs-meaning'), chips: $('bs-chips')
+      };
+
+      const initWordMap = () => {
+        if (typeof DB === 'undefined') return;
+        Object.entries(DB).forEach(([tid, theme]) => {
+          theme.nodes.forEach(n => {
+            State.wordMap[n.id] = { ...n, themeId: tid, themeColor: theme.color, themeIcon: theme.icon };
+          });
+        });
+      };
+
+      // ══════════════════════════════════════════════════
+      // VIEWS CONTROLLERS
+      // ══════════════════════════════════════════════════
+      const buildGrid = () => {
+        if (typeof DB === 'undefined') return;
+        DOM.grid.innerHTML = Object.entries(DB).map(([id, t]) => `
+      <div class="tc theme-card" data-id="${escapeHTML(id)}" style="--ac:${escapeHTML(t.color)}">
+        <div class="tc-aurora" style="background:${escapeHTML(t.color)}"></div>
+        <span class="tc-icon pointer-events-none">${escapeHTML(t.icon)}</span>
+        <div class="tc-name pointer-events-none" style="color:${escapeHTML(t.color)}">${escapeHTML(t.label)}</div>
+        <div class="tc-hint pointer-events-none" style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:12px">${escapeHTML(t.en)} · ${t.nodes.length} 词</div>
+        <div class="tc-pill pointer-events-none" style="border-color:${escapeHTML(t.color)}44;color:${escapeHTML(t.color)};background:${escapeHTML(t.color)}11">
+          <div class="tc-pill-dot pointer-events-none" style="background:${escapeHTML(t.color)}"></div>
+          点击进入
+        </div>
       </div>
-      <div id="bs-logic-tag"></div>
-      <div id="bs-meaning"></div>
-      <div id="bs-rel-label">关联词汇</div>
-      <div id="bs-chips"></div>
-    </div>
-  </div>
-</div>
-<script src="./data.js"></script>
-<script>
-// ══════════════════════════════════════════════════
-// DATA — 对应你的 Excel 结构
-// 每个主题: { label, en, icon, color, nodes[], links[] }
-// node: { id, type:'root'|'word', name(显示), zh, ph, pos, img, logic, related[] }
-// link: { source, target }
-// ══════════════════════════════════════════════════
-// Example data structure in data.js
+    `).join('');
+      };
 
-// ══════════════════════════════════════════════════
-// BUILD WORD LOOKUP MAP
-// ══════════════════════════════════════════════════
-const WORD_MAP = {};
-Object.entries(DB).forEach(([tid, theme]) => {
-  theme.nodes.forEach(n => {
-    WORD_MAP[n.id] = { ...n, themeId: tid, themeColor: theme.color, themeIcon: theme.icon };
-  });
-});
+      const openTheme = (themeId) => {
+        const theme = DB[themeId];
+        if (!theme) return;
+        State.themeId = themeId;
 
-// ══════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════
-let FG = null;
-let currentThemeId = null;
-let currentWord = null;
-let activeNodeId = null;   
+        DOM.tbarName.textContent = `${theme.icon} ${theme.label}`;
+        DOM.tbarStat.textContent = `${theme.nodes.length} 词 · 触摸节点查看`;
 
-// ══════════════════════════════════════════════════
-// PAGE 1 — THEME GRID
-// ══════════════════════════════════════════════════
-function buildGrid() {
-  const grid = document.getElementById('theme-grid');
-  grid.innerHTML = Object.entries(DB).map(([id, t]) => `
-    <div class="tc" onclick="openTheme('${id}')" style="--ac:${t.color}">
-      <div class="tc-aurora" style="background:${t.color}"></div>
-      <span class="tc-icon">${t.icon}</span>
-      <div class="tc-name" style="color:${t.color}">${t.label}</div>
-      <div class="tc-hint" style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:12px">${t.en} · ${t.nodes.length} 词</div>
-      <div class="tc-pill" style="border-color:${t.color}44;color:${t.color};background:${t.color}11">
-        <div class="tc-pill-dot" style="background:${t.color}"></div>
-        点击进入
-      </div>
-    </div>
-  `).join('');
-}
+        DOM.pMap.classList.add('off');
+        DOM.pGraph.classList.remove('off');
 
-// ══════════════════════════════════════════════════
-// PAGE 2 — GRAPH
-// ══════════════════════════════════════════════════
-function openTheme(themeId) {
-  const theme = DB[themeId];
-  if (!theme) return;
-  currentThemeId = themeId;
+        setTimeout(() => renderGraph(theme), 80);
+      };
 
-  document.getElementById('tbar-name').textContent = `${theme.icon} ${theme.label}`;
-  document.getElementById('tbar-stat').textContent = `${theme.nodes.length} 词 · 触摸节点查看`;
+      const renderGraph = (theme) => {
+        DOM.fgWrap.innerHTML = '';
+        const W = window.innerWidth, H = window.innerHeight;
+        const isMobile = W < 600;
 
-  // Switch page
-  document.getElementById('p-map').classList.add('off');
-  document.getElementById('p-graph').classList.remove('off');
+        const graphData = {
+          nodes: theme.nodes.map(n => ({ ...n })),
+          links: theme.links.map(l => ({ ...l }))
+        };
 
-  setTimeout(() => renderGraph(theme), 80);
-}
+        State.fg = ForceGraph()(DOM.fgWrap)
+          .width(W).height(H)
+          .backgroundColor('#080c14')
+          .linkColor(() => theme.color + '15') // Reduced link opacity from 30 to 15
+          .linkWidth(1)
+          .linkDirectionalParticles(3) // 3 particles for a balanced flow
+          .linkDirectionalParticleWidth(1.5) // Made the particle very thin, closer to line width
+          .linkDirectionalParticleSpeed(0.004) // slightly smoother
+          .linkDirectionalParticleColor(() => theme.color + '40') // Very dim, almost blending with the line
+          .nodeCanvasObject((node, ctx, globalScale) => {
+            const isRoot = node.type === 'root';
+            const label = node.name;
+            const zh = node.zh ? node.zh.split('；')[0] : '';
+            const enSize = Math.max(isMobile ? 11 : 13, (isMobile ? 11 : 13) / globalScale);
+            const zhSize = Math.max(isMobile ? 8 : 10, (isMobile ? 8 : 10) / globalScale);
 
-function renderGraph(theme) {
-  const wrap = document.getElementById('fg-wrap');
-  wrap.innerHTML = '';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-  const W = window.innerWidth, H = window.innerHeight;
-  const isMobile = W < 600;
+            if (isRoot) {
+              const haloR = enSize * 2.4;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
+              const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloR);
+              grad.addColorStop(0, theme.color + '28');
+              grad.addColorStop(1, 'transparent');
+              ctx.fillStyle = grad;
+              ctx.fill();
+            }
 
-  // Clone data (force-graph mutates)
-  const graphData = {
-    nodes: theme.nodes.map(n => ({ ...n })),
-    links: theme.links.map(l => ({ ...l }))
-  };
+            if (node.id === State.activeNodeId) {
+              const pulseR = enSize * 4.5;
+              const pulseGrad = ctx.createRadialGradient(node.x, node.y, enSize * 0.5, node.x, node.y, pulseR);
+              pulseGrad.addColorStop(0, theme.color + '50');
+              pulseGrad.addColorStop(0.4, theme.color + '22');
+              pulseGrad.addColorStop(1, 'transparent');
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, pulseR, 0, 2 * Math.PI);
+              ctx.fillStyle = pulseGrad;
+              ctx.fill();
 
-  FG = ForceGraph()(wrap)
-    .width(W).height(H)
-    .backgroundColor('#080c14')
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, enSize * 2, 0, 2 * Math.PI);
+              ctx.strokeStyle = theme.color + 'cc';
+              ctx.lineWidth = 1.5 / globalScale;
+              ctx.stroke();
+            }
 
-    // ── Links: glowing particle effect ──
-    .linkColor(() => theme.color + '30')
-    .linkWidth(1)
-    .linkDirectionalParticles(4)
-    .linkDirectionalParticleWidth(2.5)
-    .linkDirectionalParticleColor(() => theme.color)
-    .linkDirectionalParticleSpeed(0.006)
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, isRoot ? 4 : 2.5, 0, 2 * Math.PI);
+            ctx.fillStyle = isRoot
+              ? (node.id === State.activeNodeId ? '#fff' : theme.color)
+              : (node.id === State.activeNodeId ? '#fff' : theme.color + 'aa');
+            ctx.fill();
 
-    // ── Nodes: text only, no bubbles ──
-    .nodeCanvasObject((node, ctx, globalScale) => {
-      const isRoot = node.type === 'root';
-      const label  = node.name;
-      const zh     = node.zh ? node.zh.split('；')[0] : '';
+            ctx.font = `${isRoot ? 700 : 400} ${enSize}px 'DM Mono', monospace`;
+            ctx.fillStyle = isRoot ? '#fff' : theme.color + 'dd';
+            ctx.fillText(label, node.x, node.y - zhSize * 0.8);
 
-      // Font sizing
-      const enSize = Math.max(isMobile ? 11 : 13, (isMobile ? 11 : 13) / globalScale);
-      const zhSize = Math.max(isMobile ? 8  : 10, (isMobile ? 8 : 10)  / globalScale);
+            // Only show Chinese for ROOT nodes on the canvas
+            if (isRoot && globalScale > 0.55 && zh) {
+              ctx.font = `300 ${zhSize}px 'Lora', serif`;
+              ctx.fillStyle = theme.color + 'cc';
+              ctx.fillText(zh, node.x, node.y + enSize * 0.85);
+            }
 
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'middle';
+            node.__r = enSize * 3.5;
+          })
+          .nodeLabel(node => {
+            // For non-root nodes, show Chinese in tooltip. Root nodes already show it on canvas.
+            if (node.type !== 'root' && node.zh) {
+              return `<div style="font-family:var(--serif);font-size:12px;color:#fff;background:rgba(0,0,0,0.8);padding:4px 8px;border-radius:4px;">${escapeHTML(node.zh.split('；')[0])}</div>`;
+            }
+            return '';
+          })
+          .nodePointerAreaPaint((node, color, ctx, globalScale) => {
+            ctx.fillStyle = color;
+            const isMobile = window.innerWidth < 600;
+            const enSize = Math.max(isMobile ? 11 : 13, (isMobile ? 11 : 13) / globalScale);
 
-      // Halo for root nodes
-      if (isRoot) {
-        const haloR = enSize * 2.4;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
-        const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloR);
-        grad.addColorStop(0, theme.color + '28');
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
-        ctx.fill();
-      }
+            // Measure the actual width of the word
+            ctx.font = `${node.type === 'root' ? 700 : 400} ${enSize}px 'DM Mono', monospace`;
+            const textWidth = ctx.measureText(node.name).width;
 
-      // ── 激活节点：扩散光环 ──
-      if (node.id === activeNodeId) {
-        // 外层大光晕（神经元激活扩散感）
-        const pulseR = enSize * 4.5;
-        const pulseGrad = ctx.createRadialGradient(node.x, node.y, enSize * 0.5, node.x, node.y, pulseR);
-        pulseGrad.addColorStop(0, theme.color + '50');
-        pulseGrad.addColorStop(0.4, theme.color + '22');
-        pulseGrad.addColorStop(1, 'transparent');
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, pulseR, 0, 2 * Math.PI);
-        ctx.fillStyle = pulseGrad;
-        ctx.fill();
+            // Define a tighter bounding box: 
+            const paddingX = enSize * 1.2;
+            const paddingTop = enSize * 0.8;
+            const paddingBottom = enSize * 0.4; // Reduced bottom padding
 
-        // 中层亮环（边缘锐利）
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, enSize * 2, 0, 2 * Math.PI);
-        ctx.strokeStyle = theme.color + 'cc';
-        ctx.lineWidth = 1.5 / globalScale;
-        ctx.stroke();
-      }
+            const width = textWidth + paddingX;
+            const height = enSize + paddingTop + paddingBottom;
 
-      // Subtle dot center（原有代码保留）
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, isRoot ? 4 : 2.5, 0, 2 * Math.PI);
-      ctx.fillStyle = isRoot
-        ? (node.id === activeNodeId ? '#fff' : theme.color)
-        : (node.id === activeNodeId ? '#fff' : theme.color + 'aa');
-      ctx.fill();
+            // Shift the box upward slightly to account for text baseline offset
+            const offsetY = enSize * 0.2;
 
-      // EN label
-      ctx.font = `${isRoot ? 700 : 400} ${enSize}px 'DM Mono', monospace`;
-      ctx.fillStyle = isRoot ? '#fff' : theme.color + 'dd';
-      ctx.fillText(label, node.x, node.y - zhSize * 0.8);
+            ctx.beginPath();
+            // Draw a rounded rectangle for the interaction area
+            ctx.roundRect(node.x - width / 2, node.y - height / 2 - offsetY, width, height, height / 2);
+            ctx.fill();
+          })
+          .onNodeClick(node => {
+            if (State.activeNodeId === node.id) {
+              showCard(node.id);
+              return;
+            }
 
-      // ZH label
-      if (globalScale > 0.55 && zh) {
-        ctx.font = `300 ${zhSize}px 'Lora', serif`;
-        ctx.fillStyle = isRoot ? theme.color + 'cc' : 'rgba(200,195,215,0.55)';
-        ctx.fillText(zh, node.x, node.y + enSize * 0.85);
-      }
+            State.activeNodeId = node.id;
+            State.fg.centerAt(node.x, node.y, 600);
 
-      // Pointer area
-      node.__r = enSize * 3.5;
-    })
-    .nodePointerAreaPaint((node, color, ctx) => {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.__r || 20, 0, 2 * Math.PI);
-      ctx.fill();
-    })
+            setTimeout(() => {
+              if (!State.fg) return;
+              const zoomIn = Math.min((State.fg.zoom() || 1) * 1.35, 2.8);
+              State.fg.zoom(zoomIn, 400);
+            }, 300);
 
-    // ── Interactions ──
-    .onNodeClick(node => {
-      // 防止重复点击同一节点
-      if (activeNodeId === node.id) {
-        showCard(node.id);
-        return;
-      }
+            setTimeout(() => showCard(node.id), 550);
+            State.fg.refresh?.();
+          })
+          .onBackgroundClick(() => closeSheet())
+          .graphData(graphData);
 
-      activeNodeId = node.id;
+        State.fg.d3Force('charge').strength(isMobile ? -280 : -380);
+        State.fg.d3Force('link').distance(isMobile ? 70 : 95);
 
-      // ── 第一阶段（0ms）：镜头开始滑向节点，同时轻微缩小形成"呼吸感" ──
-      const currentZoom = FG.zoom();
-      const targetZoom  = Math.min(currentZoom * 1.0, 2.2); // 先保持当前zoom
-      FG.centerAt(node.x, node.y, 600);   // 600ms 平滑滑向节点
+        setTimeout(() => {
+          if (State.fg) State.fg.zoomToFit(900, isMobile ? 40 : 60);
+        }, 1400);
+      };
 
-      // ── 第二阶段（300ms）：镜头到达一半时开始zoom in，像神经元激活聚焦 ──
-      setTimeout(() => {
-        const zoomIn = Math.min((FG.zoom() || 1) * 1.35, 2.8);
-        FG.zoom(zoomIn, 400);             // 400ms zoom in
-      }, 300);
+      const goBack = () => {
+        closeSheet();
+        if (State.fg) { State.fg._destructor?.(); State.fg = null; }
+        DOM.fgWrap.innerHTML = '';
+        DOM.pGraph.classList.add('off');
+        DOM.pMap.classList.remove('off');
+      };
 
-      // ── 第三阶段（550ms）：视觉稳定后弹出卡片，节奏感完整 ──
-      setTimeout(() => {
-        showCard(node.id);
-      }, 550);
+      const showCard = (wordId) => {
+        const w = State.wordMap[wordId];
+        if (!w) return;
+        State.wordId = wordId;
+        const color = w.themeColor;
 
-      // 触发重绘（显示激活光晕）
-      FG.refresh?.();
-    })
-    .onBackgroundClick(() => closeSheet())
+        // ── 三级图片降级策略 ──
+        // 第一级：手动配图（w.img 有值）
+        // 第二级：Unsplash API 在线搜图
+        // 第三级：默认 emoji + 渐变背景
 
-    .graphData(graphData);
+        const showDefaultImg = () => {
+          DOM.img.src = '';
+          DOM.imgZone.style.background = `linear-gradient(135deg, ${color}22 0%, #0a0d1a 100%)`;
+          DOM.imgPlaceholder.textContent = w.themeIcon || '✨';
+          DOM.imgPlaceholder.style.color = `${color}44`;
+          DOM.imgPlaceholder.style.textShadow = `0 0 20px ${color}88`;
+        };
 
-  // Force tuning
-  FG.d3Force('charge').strength(isMobile ? -280 : -380);
-  FG.d3Force('link').distance(isMobile ? 70 : 95);
+        const loadImg = (src) => {
+          DOM.img.classList.remove('loaded');
+          DOM.img.onload = () => {
+            DOM.imgZone.style.background = '#0a0d1a';
+            DOM.imgPlaceholder.textContent = '';
+            DOM.img.classList.add('loaded');
+          };
+          DOM.img.onerror = () => showDefaultImg();
+          DOM.img.src = src;
+        };
 
-  // Auto fit after physics settle
-  setTimeout(() => {
-    FG.zoomToFit(900, isMobile ? 40 : 60);
-  }, 1400);
-}
+        // 重置状态
+        DOM.img.classList.remove('loaded');
+        DOM.imgPlaceholder.textContent = w.themeIcon || '✨'; // 先显示占位，避免白屏
+        DOM.imgPlaceholder.style.color = `${color}44`;
+        DOM.imgPlaceholder.style.textShadow = `0 0 20px ${color}88`;
+        DOM.imgZone.style.background = `linear-gradient(135deg, ${color}22 0%, #0a0d1a 100%)`;
 
-function goBack() {
-  closeSheet();
-  if (FG) { FG._destructor?.(); FG = null; }
-  document.getElementById('fg-wrap').innerHTML = '';
-  document.getElementById('p-graph').classList.add('off');
-  document.getElementById('p-map').classList.remove('off');
-}
+        if (w.img && w.img.trim() !== '') {
+          // 第一级：手动配图
+          loadImg(w.img);
+        } else {
+          // 第二级：Pixabay API
+          const zhKeyword = (w.zh || '').split('；')[0].trim();
+          const query = encodeURIComponent(`${wordId} ${zhKeyword}`);
+          const PIXABAY_KEY = '41128213-ce4087b124818e3e434c35698';
 
-window.addEventListener('resize', () => {
-  if (FG && currentThemeId) {
-    FG.width(window.innerWidth).height(window.innerHeight);
-  }
-});
+          if (PIXABAY_KEY !== 'YOUR_PIXABAY_KEY') {
+            // 第一次请求：editors_choice精选，质量高
+            fetch(
+              `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${query}&image_type=photo&orientation=horizontal&safesearch=true&per_page=5&min_width=800&editors_choice=true`
+            )
+              .then(r => r.ok ? r.json() : Promise.reject())
+              .then(data => {
+                const hits = data?.hits;
+                if (hits && hits.length > 0) {
+                  // 随机取一张，避免每次都是同一图
+                  const pick = hits[Math.floor(Math.random() * hits.length)];
+                  loadImg(pick.webformatURL);
+                } else {
+                  // editors_choice无结果，降级去掉限制再搜一次
+                  return fetch(
+                    `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${query}&image_type=photo&orientation=horizontal&safesearch=true&per_page=5&min_width=800`
+                  )
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data2 => {
+                      const url = data2?.hits?.[0]?.webformatURL;
+                      if (url) loadImg(url);
+                      else showDefaultImg();
+                    });
+                }
+              })
+              .catch(() => showDefaultImg());
+          } else {
+            // 没有 Key：直接降到第三级，不发无效请求
+            showDefaultImg();
+          }
+        }
 
-// ══════════════════════════════════════════════════
-// BOTTOM SHEET
-// ══════════════════════════════════════════════════
-function showCard(wordId) {
-  const w = WORD_MAP[wordId];
-  if (!w) return;
-  currentWord = wordId;
+        DOM.wordBig.textContent = wordId;
+        DOM.posTag.textContent = w.pos || '';
+        DOM.posTag.style.cssText += `background:${color}22;border:1px solid ${color}55;color:${color}ee;`;
+        DOM.phonetic.textContent = w.ph || '';
 
-  const color = w.themeColor;
+        // Style the unified phonetic pill
+        DOM.phonRow.style.background = color + '15';
+        DOM.phonRow.style.border = `1px solid ${color}30`;
+        DOM.phonRow.style.color = color;
 
-  // Image
-  const imgZone = document.getElementById('bs-img-zone');
-  const imgEl   = document.getElementById('bs-img');
-  const phEl    = document.getElementById('bs-img-placeholder');
-  
-  imgEl.classList.remove('loaded');
+        DOM.logicTag.textContent = w.logic || '';
+        if (w.logic) {
+          DOM.logicTag.style.display = 'inline-block';
+          DOM.logicTag.style.cssText += `background:${color}11;border:1px solid ${color}33;color:${color};`;
+        } else {
+          DOM.logicTag.style.display = 'none';
+        }
 
-  if (w.img && w.img.trim() !== '') {
-    // 如果你在 Excel 里配了图片，就加载真实图片
-    imgEl.onload  = () => imgEl.classList.add('loaded');
-    imgEl.onerror = () => imgEl.classList.remove('loaded'); // 失败则隐藏
-    imgEl.src = w.img;
-    imgZone.style.background = '#0a0d1a'; // 恢复默认黑色背景
-    phEl.textContent = ''; // 清空占位符
-  } else {
-    // 【终极降级方案】：如果没有图片，生成基于主题色的高级渐变背景
-    imgEl.src = '';
-    // 生成一个暗黑系的主题色渐变
-    imgZone.style.background = `linear-gradient(135deg, ${color}22 0%, #0a0d1a 100%)`;
-    // 中间显示该主题的 Icon（比如法律主题显示 ⚖️，经济显示 📈）
-    phEl.textContent = w.themeIcon || '✨';
-    // 让 Icon 稍微带点主题色的发光效果
-    phEl.style.color = `${color}44`; 
-    phEl.style.textShadow = `0 0 20px ${color}88`;
-  }
+        DOM.meaning.textContent = w.zh || '';
+        DOM.meaning.style.borderLeftColor = color;
 
-  document.getElementById('bs-word-big').textContent = wordId;
+        // Replace related chips with stylized 'notes' text
+        const notesObj = w.notes;
+        const relLabel = document.getElementById('bs-rel-label');
+        if (notesObj && notesObj.trim() !== '') {
+          relLabel.textContent = '详细笔记';
+          DOM.chips.innerHTML = `<div class="notes-card">${escapeHTML(notesObj)}</div>`;
+        } else {
+          relLabel.textContent = '';
+          DOM.chips.innerHTML = '';
+        }
 
-  const posTag = document.getElementById('bs-pos-tag');
-  posTag.textContent = w.pos || '';
-  posTag.style.cssText += `background:${color}22;border:1px solid ${color}55;color:${color};`;
+        // POSITION LOGIC
+        const isDesktop = window.innerWidth > 600;
+        if (isDesktop && State.fg) {
+          // Anchored Popover Mode
+          const graphNode = State.fg.graphData().nodes.find(n => n.id === wordId);
+          const posX = graphNode ? graphNode.x : 0;
+          const posY = graphNode ? graphNode.y : 0;
+          const pos = State.fg.graph2ScreenCoords(posX, posY);
+          const cardWidth = 320;
+          let left = pos.x + 20; // 20px padding from the node
+          let top = pos.y - 120; // Shift up 
 
-  document.getElementById('bs-phonetic').textContent = w.ph || '';
+          if (left + cardWidth > window.innerWidth - 20) {
+            left = pos.x - cardWidth - 20; // Flip to left side if too close to right edge
+            DOM.bottomSheet.style.transformOrigin = 'right center';
+          } else {
+            DOM.bottomSheet.style.transformOrigin = 'left center';
+          }
 
-  const spk = document.getElementById('bs-speak');
-  spk.style.background = color + '20';
-  spk.style.color = color;
-  spk.style.border = `1px solid ${color}44`;
+          if (top < 80) top = 80;
 
-  // Logic tag
-  const logicTag = document.getElementById('bs-logic-tag');
-  logicTag.textContent = w.logic || '';
-  logicTag.style.cssText += `background:${color}15;border:1px solid ${color}35;color:${color};`;
+          // Override fixed CSS into absolute and set exact coords
+          Object.assign(DOM.bottomSheet.style, {
+            position: 'absolute',
+            left: `${left}px`,
+            top: `${top}px`,
+            bottom: 'auto',
+            right: 'auto',
+            margin: '0'
+          });
+        } else {
+          // Mobile Bottom Sheet Mode
+          DOM.bottomSheet.style.cssText = '';
+          DOM.bottomSheet.style.transformOrigin = 'bottom center';
+        }
 
-  const meaning = document.getElementById('bs-meaning');
-  meaning.textContent = w.zh || '';
-  meaning.style.borderLeftColor = color;
+        DOM.bottomSheet.classList.add('open');
+        DOM.sheetOverlay.classList.add('on');
+        DOM.gHint.style.opacity = '0';
+      };
 
-  // Related chips
-  const chips = document.getElementById('bs-chips');
-  chips.innerHTML = (w.related || []).map(r => {
-    const rd = WORD_MAP[r];
-    if (!rd) return '';
-    const c = rd.themeColor;
-    return `<div class="bs-chip"
-      style="background:${c}12;border-color:${c}40;color:${c}"
-      onclick="closeSheet();setTimeout(()=>showCard('${r}'),200)"
-    >${r}</div>`;
-  }).join('');
+      const closeSheet = () => {
+        DOM.bottomSheet.classList.remove('open');
+        DOM.sheetOverlay.classList.remove('on');
+        DOM.gHint.style.opacity = '1';
+        State.wordId = null;
+        State.activeNodeId = null;
+        State.fg?.refresh?.();
+      };
 
-  document.getElementById('bottom-sheet').classList.add('open');
-  document.getElementById('sheet-overlay').classList.add('on');
-  document.getElementById('g-hint').style.opacity = '0';
-}
+      const speakWord = () => {
+        if (!State.wordId) return;
+        const icon = DOM.speakIcon;
 
-function closeSheet() {
-  document.getElementById('bottom-sheet').classList.remove('open');
-  document.getElementById('sheet-overlay').classList.remove('on');
-  document.getElementById('g-hint').style.opacity = '1';
-  currentWord = null;
-  activeNodeId = null;   
-  FG?.refresh?.();       
-}
+        if (State.audio) {
+          State.audio.pause();
+          State.audio.currentTime = 0;
+        }
 
-// Swipe down to close
-let _sy = 0;
-document.getElementById('bs-inner').addEventListener('touchstart', e => { _sy = e.touches[0].clientY; }, {passive:true});
-document.getElementById('bs-inner').addEventListener('touchmove',  e => { if (e.touches[0].clientY - _sy > 65) closeSheet(); }, {passive:true});
+        icon.textContent = '🔈';
+        icon.style.transform = 'scale(0.9)';
 
-// ══════════════════════════════════════════════════
-// SPEECH
-// ══════════════════════════════════════════════════
+        // Default Youdao API
+        const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(State.wordId)}&type=1`;
+        State.audio = new Audio(audioUrl);
 
-let currentAudio = null; // 用于存储当前的音频对象，避免重复播放重叠
+        State.audio.onended = () => {
+          icon.textContent = '♪';
+          icon.style.transform = 'scale(1)';
+        };
 
-function speakWord() {
-  if (!currentWord) return;
-  const btn = document.getElementById('bs-speak');
-  
-  // 停止之前正在播放的声音
-  if(currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-  }
+        State.audio.onerror = () => {
+          // Fallback to Web Speech API
+          const utterance = new SpeechSynthesisUtterance(State.wordId);
+          utterance.lang = 'en-US';
+          utterance.onend = () => {
+            icon.textContent = '♪';
+            icon.style.transform = 'scale(1)';
+          };
+          utterance.onerror = () => {
+            icon.textContent = '♪';
+            icon.style.transform = 'scale(1)';
+          };
+          window.speechSynthesis.speak(utterance);
+        };
 
-  // 按钮动画提示
-  btn.textContent = '🔈';
-  btn.style.transform = 'scale(0.9)';
-  
-  // 调用有道词典 API (type=1 是英音，type=2 是美音)
-  const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(currentWord)}&type=1`;
-  currentAudio = new Audio(audioUrl);
-  
-  // 播放结束或报错时，恢复按钮状态
-  currentAudio.onended = () => { 
-      btn.textContent = '♪'; 
-      btn.style.transform = 'scale(1)';
-  };
-  currentAudio.onerror = () => { 
-      btn.textContent = '♪'; 
-      btn.style.transform = 'scale(1)';
-      console.warn('发音获取失败，请检查网络'); 
-  };
-  
-  currentAudio.play();
-}
-// ══════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════
-buildGrid();
-setTimeout(() => document.getElementById('loader').classList.add('gone'), 600);
-</script>
+        State.audio.play().catch(e => {
+          State.audio.onerror(); // trigger fallback
+        });
+      };
+
+      // ══════════════════════════════════════════════════
+      // EVENT LISTENERS & LIFECYCLE
+      // ══════════════════════════════════════════════════
+      const bindEvents = () => {
+        // Top-level Event Delegation
+        document.addEventListener('click', (e) => {
+          // Theme Card Click
+          const themeCard = e.target.closest('.theme-card');
+          if (themeCard) {
+            openTheme(themeCard.dataset.id);
+            return;
+          }
+
+          // Related Chip Click
+          const relChip = e.target.closest('.rel-chip');
+          if (relChip) {
+            closeSheet();
+            setTimeout(() => showCard(relChip.dataset.id), 200);
+            return;
+          }
+        });
+
+        DOM.btnBack.addEventListener('click', goBack);
+        DOM.sheetOverlay.addEventListener('click', closeSheet);
+        DOM.phonRow.addEventListener('click', speakWord);
+
+        // Swipe down to close sheet
+        let _sy = 0;
+        DOM.bsInner.addEventListener('touchstart', e => { _sy = e.touches[0].clientY; }, { passive: true });
+        DOM.bsInner.addEventListener('touchmove', e => {
+          if (e.touches[0].clientY - _sy > 65) closeSheet();
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+          if (State.fg && State.themeId) {
+            State.fg.width(window.innerWidth).height(window.innerHeight);
+          }
+        });
+      };
+
+      const init = () => {
+        // Remove old inline onclicks defined in HTML wrapper WITHOUT destroying DOM elements
+        document.querySelectorAll('[onclick]').forEach(el => {
+          el.removeAttribute('onclick');
+        });
+
+        initWordMap();
+        buildGrid();
+        bindEvents();
+        setTimeout(() => DOM.loader.classList.add('gone'), 600);
+      };
+
+      // Run app
+      init();
+    })();
+  </script>
 </body>
+
 </html>
