@@ -1,0 +1,279 @@
+/*══════════════════════════════════
+              BOTTOM SHEET / POPOVER CARD
+══════════════════════════════════ */
+    #sheet-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      /* Subtle dark overlay for both mobile and desktop */
+      background: rgba(15, 18, 30, 0.45);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    #sheet-overlay.on {
+      display: block;
+      opacity: 1;
+    }
+
+    #bottom-sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 90;
+      transform: translateY(110%);
+      transition: transform .4s cubic-bezier(.32, .72, 0, 1), opacity .3s;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    
+
+    
+
+    
+
+    #bottom-sheet.open {
+      transform: translateY(0);
+    }
+
+    #bs-inner {
+      background: rgba(15, 18, 30, 0.85);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-bottom: none;
+      border-radius: 32px 32px 0 0;
+      overflow: hidden;
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 60px);
+      /* Leave safe area */
+    }
+
+    #bs-drag {
+      width: 40px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .2);
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
+    /* ─── DESKTOP POPOVER MODE (>600px) ─── */
+    @media (min-width: 601px) {
+      #bottom-sheet {
+        /* 摒弃跟随节点的绝对定位，改为固定在屏幕右侧的优雅侧边栏 */
+        position: fixed;
+        top: 24px;
+        right: 12px;
+        bottom: 24px;
+        left: auto;
+        width: 340px;
+        
+        /* 初始状态：靠右隐藏并稍微透明 */
+        transform: translateX(120%);
+        opacity: 0;
+        pointer-events: none;
+        
+        /* 丝滑的滑出动画 */
+        transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), opacity .3s ease;
+        padding-bottom: 0;
+        z-index: 100;
+      }
+
+      #bottom-sheet.open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      #bs-inner {
+        height: 100%; /* 撑满侧边栏高度 */
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: -10px 0 50px rgba(0, 0, 0, 0.5), inset 1px 0 0 rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+      }
+      
+      #bs-drag {
+        display: none; /* 电脑端不需要顶部拖拽条 */
+      }
+
+      #bs-img-zone {
+        height: 180px;
+      }
+    }
+
+    /* Card image */
+    #bs-img-zone {
+      position: relative;
+      height: 140px; /* 🌟 优化：从 180px 压缩到 120px，节约宝贵的纵向空间 */
+      background: #0a0d1a;
+      overflow: hidden;
+      flex-shrink: 0;
+      /* 🌟 核心魔法：透明度蒙版。让图片从上到下，由实心渐渐“消散”为完全透明 */
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 100%);
+    }
+
+    #bs-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    #bs-img.loaded {
+      opacity: 1;
+    }
+
+    #bs-img-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 54px;
+      opacity: .08;
+    }
+
+    
+
+    /* ─── Header: word + pos (line 1), logic tag (line 2) ─── */
+    #bs-header {
+      padding: 0 20px 12px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    #bs-header-row {
+      position: relative;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-top: -36px;
+      z-index: 2;
+    }
+
+    #bs-word-big {
+      font-family: var(--serif);
+      font-size: 30px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    #bs-pos-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      flex-shrink: 0;
+    }
+
+    #bs-logic-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .06em;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-top: 8px;
+      display: inline-block;
+    }
+
+    /* ─── Card body ─── */
+    #bs-body {
+      padding: 16px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    #bs-body::-webkit-scrollbar { width: 4px; }
+    #bs-body::-webkit-scrollbar-track { background: transparent; }
+    #bs-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+    #bs-body::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+    /* ─── Meaning row: left bar + meaning text + phonetic pill ─── */
+    #bs-meaning-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding-left: 12px;
+      border-left-width: 3px;
+      border-left-style: solid;
+      border-radius: 0;
+    }
+
+    #bs-meaning {
+      font-family: var(--serif);
+      font-size: 15px;
+      line-height: 1.6;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.92);
+      letter-spacing: 0.02em;
+      flex: 1;
+      min-width: 0;
+    }
+
+    #bs-phon-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px 4px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: transform .15s, background .2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    #bs-phon-row:active { transform: scale(.95); }
+
+    @keyframes sonarWave {
+      0% { box-shadow: 0 0 0 0 var(--wave-color, rgba(255,255,255,0.4)); }
+      100% { box-shadow: 0 0 0 16px rgba(0,0,0,0); }
+    }
+    #bs-phon-row.playing-audio {
+      animation: sonarWave 1s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    }
+
+    #bs-phonetic { font-family: var(--mono); font-size: 12px; font-weight: 500; line-height: 1; }
+    #bs-speak-icon { font-size: 13px; display: flex; align-items: center; justify-content: center; opacity: 0.8; }
+
+    /* ─── 标签小标题 ─── */
+    #bs-rel-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .2em; /* 🌟 拉开字距，更有极客设计感 */
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+      /*margin-top: 4px;      和上面的释义拉开一点呼吸空间 */
+      margin-bottom: -4px; /* 和下面的笔记卡片紧凑贴合 */
+    }
+
+
+    /* ─── 详细笔记卡片 (Notes) ─── */
+    .notes-card {
+      font-family: var(--serif);
+      font-size: 14px;
+      line-height: 1.8; /* 🌟 核心优化：1.8 的超大行高，拯救长文阅读疲劳 */
+      letter-spacing: 0.03em;
+      color: rgba(255, 255, 255, 0.75); /* 柔和的次级文字颜色，不刺眼 */
+      padding: 16px 18px;
+      background: rgba(10, 14, 28, 0.4); /* 和 Tooltip 呼应的深渊蓝底色 */
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      width: 100%;
+      white-space: pre-wrap; /* 完美保留你数据里的换行符 */
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+

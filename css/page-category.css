@@ -1,0 +1,177 @@
+/* ══ PAGE 2: CATEGORY — Sub-group List ══ */
+
+
+#p-cat {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* ═══ 第一页背景方案（二选一，注释掉不要的） ═══ */
+
+  /* 方案 A：渐变 + 星点动画（推荐 · 卡片更突出） 
+  background:
+    radial-gradient(ellipse 120% 50% at 50% -5%, rgba(25, 35, 65, 0.55) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 40% at 85% 8%, rgba(50, 30, 60, 0.2) 0%, transparent 60%),
+    #050810;*/
+
+  /* 方案 B：与第二页统一星云背景（注释掉方案 A，取消注释下面三行）*/
+  background-color: #030407;
+  background-image: url('../assets/space-bg.png');
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  
+}
+#p-cat::-webkit-scrollbar { width: 3px; }
+#p-cat::-webkit-scrollbar-track { background: transparent; }
+#p-cat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 3px; }
+
+/* Starfield (仅方案 A 生效；方案 B 时可在 JS 中注释掉 starfield 初始化) */
+#starfield { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+/* 方案 B 专用遮罩（使用星云图片时取消注释） */
+#p-cat::before {
+  content: ""; position: fixed; inset: 0;
+  background: radial-gradient(ellipse 90% 70% at 50% 30%, rgba(3, 4, 7, 0.75) 0%, rgba(3, 4, 7, 0.92) 100%);
+  pointer-events: none; z-index: 0;
+}
+   
+
+
+
+/* ── Topbar ── */
+#cat-topbar {
+  position: sticky; top: 0; z-index: 20;
+  padding: max(env(safe-area-inset-top), 14px) 24px 0;
+  background: linear-gradient(to bottom, #050810ee 60%, transparent);
+}
+#cat-topbar-row {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 12px;
+  max-width: 980px; margin: 0 auto;
+}
+#btn-cat-back {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 0 1px 1px;
+  transition: background .15s; flex-shrink: 0;
+}
+#btn-cat-back:active { background: rgba(255, 255, 255, .12); }
+
+#cat-info { flex: 1; min-width: 0; }
+#cat-title {
+  font-family: var(--serif); font-size: 18px; font-weight: 600;
+  color: var(--text-primary);
+}
+#cat-stat {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-muted); margin-top: 2px;
+}
+
+/* ── Search ── */
+#cat-search {
+  position: relative; z-index: 1;
+  max-width: 980px; margin: 8px auto 0; padding: 0 24px;
+}
+#cat-search-inner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 0 16px; height: 42px;
+  transition: border-color 0.25s, background 0.25s;
+}
+#cat-search-inner:focus-within {
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.045);
+}
+#cat-search-inner svg { flex-shrink: 0; color: var(--text-muted); transition: color 0.25s; }
+#cat-search-inner:focus-within svg { color: var(--text-tertiary); }
+#cat-search-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: var(--mono); font-size: 13px; font-weight: 300;
+  color: var(--text-primary); letter-spacing: 0.03em;
+}
+#cat-search-input::placeholder { color: var(--text-muted); }
+
+/* ── Sub-group Grid (reuses .tc theme card styles from sheet.css) ── */
+#cat-grid {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding: 18px 24px max(env(safe-area-inset-bottom), 48px);
+  max-width: 980px; margin: 0 auto;
+}
+@media (min-width: 600px) { #cat-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+@media (min-width: 960px) { #cat-grid { grid-template-columns: repeat(4, 1fr); gap: 18px; } }
+
+.cat-empty {
+  grid-column: 1 / -1; text-align: center; padding: 48px 20px;
+  font-family: var(--mono); font-size: 13px; color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ── Theme Card (shared between category page and potentially other views) ── */
+.tc {
+  position: relative; overflow: hidden;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 22px 18px 18px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  transition: transform 0.28s cubic-bezier(.34, 1.56, .64, 1), border-color 0.25s, background 0.25s, opacity 0.3s;
+  -webkit-user-select: none; user-select: none;
+  opacity: 0; animation: cardIn 0.45s ease forwards;
+}
+.tc.featured { grid-column: span 2; }
+@media (max-width: 599px) { .tc:first-child { grid-column: span 2; } }
+.tc:active { transform: scale(0.96); }
+.tc:hover {
+  border-color: rgba(255, 255, 255, .15);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-3px);
+}
+.tc-aurora {
+  position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px;
+  border-radius: 50%; filter: blur(42px);
+  opacity: 0.16; pointer-events: none;
+  transition: opacity .3s;
+}
+.tc:hover .tc-aurora { opacity: .26; }
+.tc-icon { font-size: 28px; display: block; margin-bottom: 12px; filter: saturate(0.85); }
+.tc-name {
+  font-family: var(--serif); font-size: 17px; font-weight: 600;
+  line-height: 1.25; margin-bottom: 4px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tc-hint {
+  font-family: var(--mono); font-size: 10px; font-weight: 300;
+  letter-spacing: .08em; color: var(--text-muted); margin-bottom: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tc-footer { margin-top: auto; }
+.tc-progress {
+  position: relative; height: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px; overflow: hidden; margin-bottom: 10px;
+}
+.tc-progress-fill {
+  position: absolute; top: 0; left: 0; height: 100%;
+  border-radius: 2px;
+  transition: width 0.9s cubic-bezier(.16, 1, .3, 1);
+  width: 0;
+}
+.tc-bottom { display: flex; align-items: center; justify-content: space-between; }
+.tc-count {
+  font-family: var(--mono); font-size: 10px; font-weight: 300;
+  letter-spacing: .05em; color: var(--text-tertiary);
+}
+.tc-arrow {
+  font-size: 14px; color: var(--text-muted);
+  transition: color 0.25s, transform 0.25s;
+}
+.tc:hover .tc-arrow { color: var(--text-tertiary); transform: translateX(3px); }
