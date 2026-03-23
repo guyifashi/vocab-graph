@@ -50,7 +50,7 @@ const renderCatGrid = () => {
     card.style.animationDelay = (0.05 + i * 0.035) + 's';
 
     const wordCount = t.nodes ? t.nodes.length : 0;
-    const mastered = t.mastered || 0;
+    const mastered = getLearnedCountForTheme(id);
     const pct = wordCount > 0 ? Math.round(mastered / wordCount * 100) : 0;
 
     card.innerHTML = `
@@ -63,7 +63,7 @@ const renderCatGrid = () => {
           <div class="tc-progress-fill" style="background:${escapeHTML(t.color)}" data-width="${pct}%"></div>
         </div>
         <div class="tc-bottom">
-          <span class="tc-count">${mastered ? mastered + '/' : ''}${wordCount} 词</span>
+          <span class="tc-count">${mastered}/${wordCount} 词</span>
           <span class="tc-arrow">→</span>
         </div>
       </div>
@@ -84,4 +84,6 @@ const renderCatGrid = () => {
 const goBackToHome = () => {
   State.currentCatId = null;
   showPage(DOM.pHome);
+  // 刷新首页进度条
+  buildHome();
 };

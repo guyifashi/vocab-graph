@@ -1,4 +1,31 @@
 // ══ Force Graph Renderer ══
+
+      // ── Topbar auto-hide system ──
+      const topbar = $('topbar');
+      const ghostBack = $('ghost-back');
+      let _topbarTimer = null;
+
+      const showTopbar = () => {
+        if (topbar) topbar.classList.remove('hidden');
+        if (ghostBack) ghostBack.classList.remove('visible');
+        clearTimeout(_topbarTimer);
+      };
+
+      const hideTopbar = () => {
+        if (topbar) topbar.classList.add('hidden');
+        if (ghostBack) ghostBack.classList.add('visible');
+        if (DOM.gHint) DOM.gHint.style.opacity = '0';
+        // 关闭未学高亮模式
+        State._showUnlearned = false;
+        const ub = $('btn-unlearned');
+        if (ub) ub.classList.remove('active');
+      };
+
+      const scheduleHideTopbar = (delay = 2000) => {
+        clearTimeout(_topbarTimer);
+        _topbarTimer = setTimeout(hideTopbar, delay);
+      };
+
       const openTheme = (themeId) => {
         const theme = DB[themeId];
         if (!theme) return;
@@ -8,6 +35,7 @@
         DOM.tbarName.style.color = theme.color;
         DOM.tbarStat.textContent = `${theme.nodes.length} 词 · 触摸节点查看`;
 
+        showTopbar();
         showPage(DOM.pGraph);
         State._starfieldActive = false;
 
@@ -18,6 +46,10 @@
         DOM.fgWrap.innerHTML = '';
         const W = window.innerWidth, H = window.innerHeight;
         const isMobile = W < 600;
+
+        // Cache learned set for this render session (updated when markLearned fires)
+        let _learnedCache = getLearnedSet();
+        State._refreshLearnedCache = () => { _learnedCache = getLearnedSet(); };
 
         const SPAWN_DELAY = 80;   // 每个词之间的间隔 ms
         const sortedNodes = [
@@ -33,16 +65,22 @@
         State.userInteracted = false;
         State._removeUserActListeners?.();
 
+        const nodesArr = sortedNodes.map((n, i) => ({
+          ...n,
+          _spawnIndex: i,
+          _born:       false,
+          _opacity:    0,
+          // root节点在原点，其他节点初始都堆在root上，激活时从root飞出
+          x: n.type === 'root' ? 0 : 0,
+          y: n.type === 'root' ? 0 : 0,
+        }));
+        // Pre-compute previous node reference for O(1) loop lookup
+        nodesArr.forEach((n, i) => {
+          n._prevNode = i > 0 ? nodesArr[i - 1] : null;
+        });
+
         const graphData = {
-          nodes: sortedNodes.map((n, i) => ({
-            ...n,
-            _spawnIndex: i,
-            _born:       false,
-            _opacity:    0,
-            // root节点在原点，其他节点初始都堆在root上，激活时从root飞出
-            x: n.type === 'root' ? 0 : 0,
-            y: n.type === 'root' ? 0 : 0,
-          })),
+          nodes: nodesArr,
           links: theme.links.map(l => ({
             ...l,
             _logic: nodeById[l.target]?.logic || ''
@@ -53,7 +91,43 @@
         let lastClickTime = 0;
         let lastClickedNodeId = null;
 
-        State.fg = ForceGraph()(DOM.fgWrap)
+        const handleNodeClick = (node) => {
+          State._nodeClickedThisFrame = true;
+          if (State.zoomTimer) {
+            clearTimeout(State.zoomTimer);
+            State.zoomTimer = null;
+          }
+
+          if (!State.activeNodeId && State.fg) {
+            const center = State.fg.centerAt();
+            State.prevView = { x: center.x, y: center.y, zoom: State.fg.zoom() };
+          }
+
+          State.activeNodeId = node.id;
+          if (State.fg) {
+            State.fg.centerAt(node.x, node.y, 350);
+          }
+          
+          State.zoomTimer = setTimeout(() => {
+            if (!State.fg || State.activeNodeId !== node.id) return;
+            const currentZoom = State.fg.zoom() || 1;
+            State.fg.zoom(Math.min(currentZoom * 1.35, 2.8), 350);
+            showCard(node.id);
+          }, 200);
+
+          State.fg?.refresh?.();
+        };
+
+        if (State.trackInterval) {
+          clearInterval(State.trackInterval);
+          State.trackInterval = null;
+        }
+
+        if (!State.fg) {
+          State.fg = ForceGraph()(DOM.fgWrap);
+        }
+
+        State.fg
           .width(W).height(H)
           .backgroundColor('rgba(0,0,0,0)')
           // 关闭默认连线渲染，全部用 linkCanvasObject 自绘
@@ -334,10 +408,7 @@
             ctx.textBaseline = 'middle';
 
             // ── 顺序物理激活：前一节点速度衰减后才激活当前节点 ──
-            const nodes    = State.fg?.graphData()?.nodes || [];
-            const prevNode = node._spawnIndex > 0
-              ? nodes.find(n => n._spawnIndex === node._spawnIndex - 1)
-              : null;
+            const prevNode = node._prevNode;
 
             // 速度阈值：越小等越久，越大连蹦越快
             // 用 1.8 让节点"还在滑行"时就触发下一个，节奏更紧凑
@@ -402,28 +473,44 @@
 
             // 1. 核心词外围的巨大光晕 (Root)
             if (isRoot) {
-              const haloR = enSize * 2.4;
+              const rootLearned = _learnedCache.has(node.id);
+              const haloR = enSize * (rootLearned ? 2.8 : 2.4);
+              const rootAlpha = rootLearned ? 0.22 : 0.15;
               ctx.beginPath();
               ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
               const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloR);
-              grad.addColorStop(0, 'rgba(255,255,255,0.15)');
+              grad.addColorStop(0, `rgba(255,255,255,${rootAlpha})`);
               grad.addColorStop(1, 'transparent');
               ctx.fillStyle = grad;
               ctx.fill();
             }else{
               // 非Root节点的基础光晕 (使用词性色)
-              const haloR = enSize * 1.6;
+              const isLearned = _learnedCache.has(node.id);
+              const haloR = enSize * (isLearned ? 2.1 : 1.6);
+              const haloAlpha = isLearned ? '38' : '20';
               ctx.beginPath();
               ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
               const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, haloR);
-              grad.addColorStop(0, nodeColor + '20');
+              grad.addColorStop(0, nodeColor + haloAlpha);
               grad.addColorStop(1, 'transparent');
               ctx.fillStyle = grad;
               ctx.fill();
 
+              // 未学高亮模式：白色虚线环
+              if (State._showUnlearned && !isLearned) {
+                const ringR = enSize * 1.9;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, ringR, 0, 2 * Math.PI);
+                ctx.setLineDash([3 / globalScale, 3 / globalScale]);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1.2 / globalScale;
+                ctx.stroke();
+                ctx.setLineDash([]);
+              }
+
               // 🌟 出生闪光：前 400ms 显示一个快速扩散并消散的光环
               if (age < 400) {
-                const t = age / 400; // 0 → 1
+                const t = age / 400;
                 const flashR = enSize * (1.5 + t * 3);
                 const flashAlpha = Math.round((1 - t) * 0.4 * 255).toString(16).padStart(2, '0');
                 ctx.beginPath();
@@ -556,53 +643,52 @@
             return '';
           })
           .nodePointerAreaPaint((node, color, ctx, globalScale) => {
+            // 未出生节点不接受点击
+            if (!node._born) return;
+
             ctx.fillStyle = color;
             const isMobile = window.innerWidth < 600;
             const enSize = Math.max(isMobile ? 14 : 16, (isMobile ? 14 : 16) / globalScale);
             const zhSize = Math.max(isMobile ? 11 : 12, (isMobile ? 11 : 12) / globalScale);
 
-            // 1. 获取准确的文字宽度
             ctx.font = `${node.type === 'root' ? 700 : 600} ${enSize}px 'DM Mono', monospace`;
             const textWidth = ctx.measureText(node.name).width;
 
-            // 2. 设定宽裕的碰撞框尺寸（增加左右和上下的容错率，手机上更容易点中）
-            const paddingX = enSize * 2.0; 
+            // 手机上加大碰撞框，更容易点中
+            const paddingX = enSize * (isMobile ? 2.5 : 2.0);
             const width = textWidth + paddingX;
-            // 高度要能包裹住上方的英文、中间的圆点、以及 Root 节点下方的中文
-            const height = enSize * 3.5; 
-
-            // 3. 🌟 核心修复 2：Y轴碰撞偏移。视觉上英文往上挪了 zhSize * 0.8，碰撞框也要跟着往上挪！
+            const height = enSize * (isMobile ? 4.5 : 3.5);
             const offsetY = zhSize * 0.8;
 
+            const x = node.x - width / 2;
+            const y = node.y - height / 2 - offsetY;
             ctx.beginPath();
-            // 画一个隐形的“胶囊”作为完美的触摸响应区
-            ctx.roundRect(node.x - width / 2, node.y - height / 2 - offsetY, width, height, height / 2);
+            ctx.rect(x, y, width, height);
             ctx.fill();
           })
           .onNodeClick(node => {
-            if (State.zoomTimer) {
-              clearTimeout(State.zoomTimer);
-              State.zoomTimer = null;
+            handleNodeClick(node);
+          })
+          .onNodeDrag(node => {
+            // 记录拖拽起始位置
+            if (!State._dragStart) {
+              State._dragStart = { x: node.x, y: node.y, id: node.id };
             }
-
-            if (!State.activeNodeId && State.fg) {
-              const center = State.fg.centerAt();
-              State.prevView = { x: center.x, y: center.y, zoom: State.fg.zoom() };
+          })
+          .onNodeDragEnd(node => {
+            // 如果拖拽距离极小（< 8px 屏幕像素），视为点击
+            const ds = State._dragStart;
+            if (ds && ds.id === node.id) {
+              const dx = node.x - ds.x;
+              const dy = node.y - ds.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const zoom = State.fg?.zoom() || 1;
+              if (dist * zoom < 8) {
+                // 模拟点击
+                handleNodeClick(node);
+              }
             }
-
-            State.activeNodeId = node.id;
-            State.fg.centerAt(node.x, node.y, 350);
-            
-            State.zoomTimer = setTimeout(() => {
-              if (!State.fg || State.activeNodeId !== node.id) return;
-              const currentZoom = State.fg.zoom() || 1;
-              State.fg.zoom(Math.min(currentZoom * 1.35, 2.8), 350);
-              
-              // 镜头拉近的同时，直接滑出面板/弹窗
-              showCard(node.id);
-            }, 200);
-
-            State.fg.refresh?.();
+            State._dragStart = null;
           })
 
           .onNodeHover(node => {
@@ -666,19 +752,18 @@
         setTimeout(() => {
           if (!State.fg) return;
           
-          let trackInterval;
           const maxFits = 30; // 增加追踪次数兜底
           let fitCount = 0;
           
           const doTracking = () => {
             if (!State.fg || fitCount >= maxFits) {
-              clearInterval(trackInterval);
+              clearInterval(State.trackInterval);
               return;
             }
 
             const nodes = State.fg.graphData().nodes;
             const allBorn = nodes.length > 0 && nodes.every(n => n._born);
-            const padding = isMobile ? 24 : 100;
+            const padding = isMobile ? 30 : 100;
             
             // 【核心魔法】每次调用耗时 400ms，恰好等于定时器的间隔！
             // 这样前一次缩放刚好结束，后一次无缝接上，视觉上就是一条连贯顺滑的后撤曲线
@@ -686,16 +771,17 @@
             fitCount++;
 
             if (allBorn) {
-              clearInterval(trackInterval);
-              // 所有单词都爆出后，用一个超长动画做最终的完美居中定格
+              clearInterval(State.trackInterval);
               setTimeout(() => {
                 State.fg?.zoomToFit(1200, padding);
+                // 最终定格后 2 秒自动隐藏 topbar
+                scheduleHideTopbar(2000);
               }, 400);
             }
           };
 
           // 将追踪间隔从原先卡顿的 600ms 缩短为 400ms
-          trackInterval = setInterval(doTracking, 400);
+          State.trackInterval = setInterval(doTracking, 400);
           doTracking(); // 0等待，立刻触发第一帧后撤！
 
           // --- 监听用户主动手势（触摸/滚轮），一旦干预立刻把控制权还给用户 ---
@@ -703,7 +789,7 @@
           if (canvas) {
             const onUserAct = () => {
               State.userInteracted = true;
-              clearInterval(trackInterval);
+              clearInterval(State.trackInterval);
               canvas.removeEventListener('wheel', onUserAct);
               canvas.removeEventListener('pointerdown', onUserAct);
             };
@@ -711,7 +797,7 @@
             canvas.addEventListener('pointerdown', onUserAct, { passive: true });
 
             State._removeUserActListeners = () => {
-              clearInterval(trackInterval);
+              clearInterval(State.trackInterval);
               canvas.removeEventListener('wheel', onUserAct);
               canvas.removeEventListener('pointerdown', onUserAct);
             };

@@ -26,7 +26,7 @@
           if (State._starfieldActive) {
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
             stars.forEach(s => {
-              const flicker = 0.5 + 0.5 * Math.sin(t * s.speed * 1000 + s.phase);
+              const flicker = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
               ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
               ctx.fillStyle = `rgba(200, 195, 185, ${s.a * (0.6 + 0.4 * flicker)})`;
               ctx.fill();

@@ -20,9 +20,9 @@ const CATEGORIES = [
 const State = {
   fg: null, themeId: null, wordId: null,
   activeNodeId: null, hoverNodeId: null,
-  audio: null, wordMap: {}, prevView: null, zoomTimer: null,
+  audio: null, wordMap: {}, prevView: null, zoomTimer: null, trackInterval: null,
   currentCatId: null, catSearchQuery: '',
-  _starfieldActive: true,
+  _starfieldActive: true, _showUnlearned: false,
 };
 
 const DOM = {
@@ -104,4 +104,44 @@ const initWordMap = () => {
 const showPage = (pageEl) => {
   document.querySelectorAll('.page').forEach(p => p.classList.add('off'));
   pageEl.classList.remove('off');
+};
+
+// ══ Learning Progress (localStorage) ══
+const LEARNED_KEY = 'wordnet_learned';
+
+const getLearnedSet = () => {
+  try {
+    const raw = localStorage.getItem(LEARNED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+};
+
+const markLearned = (wordId) => {
+  const set = getLearnedSet();
+  if (set.has(wordId)) return false;
+  set.add(wordId);
+  try { localStorage.setItem(LEARNED_KEY, JSON.stringify([...set])); } catch {}
+  return true;
+};
+
+const getLearnedCountForTheme = (themeId) => {
+  const theme = DB[themeId];
+  if (!theme) return 0;
+  const learned = getLearnedSet();
+  return theme.nodes.filter(n => learned.has(n.id)).length;
+};
+
+const getLearnedCountForCategory = (cat) => {
+  const themes = getThemesForCategory(cat);
+  const learned = getLearnedSet();
+  let count = 0;
+  themes.forEach(([id, t]) => {
+    count += t.nodes.filter(n => learned.has(n.id)).length;
+  });
+  return count;
+};
+
+const getTotalWordsForCategory = (cat) => {
+  const themes = getThemesForCategory(cat);
+  return themes.reduce((sum, [, t]) => sum + (t.nodes ? t.nodes.length : 0), 0);
 };

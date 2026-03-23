@@ -1,19 +1,23 @@
 // ══ Bottom Sheet / Word Detail Card ══
       const goBack = () => {
-        // 🌟 修复：立刻强制隐藏弹窗和遮罩，不等动画结束
-        // closeSheet() 只是移除 class 触发过渡动画，但 bottom-sheet 是 fixed 定位
-        // 不在 #p-graph 内部，.off 的 opacity:0 管不到它，返回第一页时会闪一下
         DOM.bottomSheet.classList.remove('open');
         DOM.bottomSheet.style.display = 'none';
         DOM.sheetOverlay.classList.remove('on');
         DOM.sheetOverlay.style.display = 'none';
-        DOM.gHint.style.opacity = '1';
+
+        // Reset topbar state
+        showTopbar();
+        clearTimeout(_topbarTimer);
         State.wordId = null;
         State.activeNodeId = null;
         State.prevView = null;
+        State._showUnlearned = false;
+        const unlearnedBtn = $('btn-unlearned');
+        if (unlearnedBtn) unlearnedBtn.classList.remove('active');
 
         // 清理定时器
         if (State.zoomTimer) { clearTimeout(State.zoomTimer); State.zoomTimer = null; }
+        if (State._learnTimer) { clearTimeout(State._learnTimer); State._learnTimer = null; }
 
         // 停止音频
         if (State.audio) { State.audio.pause(); State.audio = null; }
@@ -26,6 +30,9 @@
         showPage(DOM.pCat);
         State._starfieldActive = true;
 
+        // 刷新二级页进度条（学习记录可能已更新）
+        renderCatGrid();
+
         // 下次打开弹窗时恢复 display
         setTimeout(() => {
           DOM.bottomSheet.style.display = '';
@@ -37,6 +44,10 @@
         const w = State.wordMap[wordId];
         if (!w) return;
         State.wordId = wordId;
+
+        // 清除上一次的学习计时器
+        if (State._learnTimer) { clearTimeout(State._learnTimer); State._learnTimer = null; }
+
         const color = w.themeColor;
         const posColor = getPosColor(w.pos);
 
@@ -116,6 +127,34 @@
         DOM.wordBig.textContent = wordId;
         DOM.posTag.textContent = w.pos ? w.pos.toUpperCase() : '';
         DOM.posTag.style.color = posColor;
+
+        // 已学过标签
+        const learnedBadge = document.getElementById('bs-learned-badge');
+        const alreadyLearned = getLearnedSet().has(wordId);
+        if (learnedBadge) {
+          if (alreadyLearned) {
+            learnedBadge.textContent = '已学过';
+            learnedBadge.style.cssText = `display:inline-block;color:${posColor};border-color:${posColor}44;`;
+          } else {
+            learnedBadge.textContent = '';
+            learnedBadge.style.display = 'none';
+          }
+        }
+
+        // 5 秒后标记为已学习
+        if (!alreadyLearned) {
+          State._learnTimer = setTimeout(() => {
+            if (State.wordId === wordId) {
+              markLearned(wordId);
+              State._refreshLearnedCache?.();
+              if (learnedBadge) {
+                learnedBadge.textContent = '已学过';
+                learnedBadge.style.cssText = `display:inline-block;color:${posColor};border-color:${posColor}44;opacity:0;`;
+                requestAnimationFrame(() => { learnedBadge.style.opacity = '1'; });
+              }
+            }
+          }, 3000);
+        }
         DOM.phonetic.textContent = w.ph || '';
 
         // Style the phonetic pill
@@ -141,8 +180,8 @@
         const relLabel = document.getElementById('bs-rel-label');
         if (notesObj && notesObj.trim() !== '') {
           relLabel.textContent = '详细笔记';
-          // 🌟 核心优化：动态注入词性颜色作为左边框（带有一点点透明度 88）
-          DOM.chips.innerHTML = `<div class="notes-card" style="border-left: 2px solid ${posColor}88;">${escapeHTML(notesObj)}</div>`;
+          // 🌟 核心优化：动态注入词性颜色作为左边框（带有一点点透明度 88），并支持换行
+          DOM.chips.innerHTML = `<div class="notes-card" style="border-left: 2px solid ${posColor}88; white-space: pre-wrap;">${escapeHTML(notesObj)}</div>`;
         } else {
           relLabel.textContent = '';
           DOM.chips.innerHTML = '';
@@ -152,15 +191,19 @@
         
         DOM.bottomSheet.classList.add('open');
         DOM.sheetOverlay.classList.add('on');
-        DOM.gHint.style.opacity = '0';
       };
 
       const closeSheet = () => {
         DOM.bottomSheet.classList.remove('open');
         DOM.sheetOverlay.classList.remove('on');
-        DOM.gHint.style.opacity = '1';
         State.wordId = null;
         State.activeNodeId = null;
+
+        // 清除学习计时器
+        if (State._learnTimer) { clearTimeout(State._learnTimer); State._learnTimer = null; }
+
+        // 弹窗关闭后重新开始隐藏倒计时
+        scheduleHideTopbar(3000);
 
         if (State.prevView && State.fg) {
           State.fg.centerAt(State.prevView.x, State.prevView.y, 600);
@@ -179,6 +222,9 @@
         if (State.audio) {
           State.audio.pause();
           State.audio.currentTime = 0;
+        }
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
         }
 
         icon.textContent = '🔈';
