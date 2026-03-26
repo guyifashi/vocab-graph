@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#080c14">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WordNet">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>WordNet · 考研词图谱</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <script src="js/force-graph.min.js"></script>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/page-home.css">
+  <link rel="stylesheet" href="css/page-category.css">
+  <link rel="stylesheet" href="css/page-graph.css">
+  <link rel="stylesheet" href="css/page-profile.css">
+  <link rel="stylesheet" href="css/sheet.css">
+</head>
+<body>
+
+  <div id="space-bg"></div>
+  <canvas id="starfield"></canvas>
+  <div id="loader"><div class="lr"></div><div class="lt">LOADING</div></div>
+
+  <!-- ═══ PAGE 0: PROFILE — 个人档案 ═══ -->
+  <div class="page off" id="p-profile">
+    <div id="profile-topbar">
+      <div id="profile-topbar-row">
+        <button id="btn-profile-back">←</button>
+        <div id="profile-topbar-info">
+          <div id="profile-topbar-title">个人档案</div>
+        </div>
+      </div>
+    </div>
+    <div id="profile-hero">
+      <div id="profile-avatar-wrap">
+        <div id="profile-avatar">🚀</div>
+      </div>
+      <div id="profile-name">Explorer</div>
+      <div id="profile-name-hint">点击修改昵称</div>
+    </div>
+    <div id="profile-stats">
+      <div class="pf-stat"><span class="pf-stat-num" id="pf-learned">0</span><span class="pf-stat-label">已学</span></div>
+      <div class="pf-stat"><span class="pf-stat-num" id="pf-total">0</span><span class="pf-stat-label">总词</span></div>
+      <div class="pf-stat"><span class="pf-stat-num" id="pf-percent">0%</span><span class="pf-stat-label">完成</span></div>
+      <div class="pf-stat"><span class="pf-stat-num" id="pf-streak">0</span><span class="pf-stat-label">连续天</span></div>
+    </div>
+    <div id="profile-streak-row">
+      <div class="pf-section-title">本周学习</div>
+      <div id="pf-week"></div>
+    </div>
+    <div id="profile-cat-section">
+      <div class="pf-section-title">分类进度</div>
+      <div id="profile-grid"></div>
+    </div>
+    <div id="profile-actions">
+      <button class="pf-action-btn" id="pf-btn-export">导出数据</button>
+      <div style="position: relative; width: 100%;">
+        <button class="pf-action-btn pf-danger" id="pf-btn-reset">重置进度 ▾</button>
+        <!-- 重置面板（紧贴按钮内联展开） -->
+        <div id="pf-reset-panel">
+          <div id="pf-reset-inner">
+            <div class="pf-reset-header">选择重置范围</div>
+            <button class="pf-reset-row pf-danger-row" id="pf-reset-all">
+              <span class="pf-reset-icon">💥</span>
+              <span class="pf-reset-text">重置所有进度</span>
+            </button>
+            <div class="pf-reset-divider"></div>
+            <div class="pf-reset-header">按分类重置</div>
+            <div id="pf-reset-cats"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="profile-avatar-picker" class="pf-picker-hidden">
+      <div id="pf-picker-grid"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 1: HOME — 大类入口 ═══ -->
+  <div class="page" id="p-home">
+    <div id="home-header">
+      <div id="home-header-top">
+        <div class="map-eyebrow">考研核心词图谱</div>
+        <button id="btn-avatar">🚀</button>
+      </div>
+      <div class="map-title">Word<em>Net</em></div>
+      <div class="map-sub">选择分类 · 进入词根图谱</div>
+    </div>
+    <div id="stats-bar">
+      <div class="stat-item">
+        <span class="stat-num" id="s-groups">0</span>
+        <span class="stat-label">groups</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="s-words">0</span>
+        <span class="stat-label">words</span>
+      </div>
+    </div>
+    <div id="home-grid"></div>
+  </div>
+
+  <!-- ═══ PAGE 2: CATEGORY — 子组列表 ═══ -->
+  <div class="page off" id="p-cat">
+    <div id="cat-topbar">
+      <div id="cat-topbar-row">
+        <button id="btn-cat-back">←</button>
+        <div id="cat-info">
+          <div id="cat-title"></div>
+          <div id="cat-stat"></div>
+        </div>
+      </div>
+    </div>
+    <div id="cat-search">
+      <div id="cat-search-inner">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input id="cat-search-input" type="search" placeholder="搜索子组..." autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+    <div id="cat-grid"></div>
+  </div>
+
+  <!-- ═══ PAGE 3: GRAPH ═══ -->
+  <div class="page off" id="p-graph">
+    <div id="fg-wrap"></div>
+    <button id="ghost-back">
+      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="tb-icon"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <div id="topbar">
+      <div id="topbar-row">
+        <button id="btn-back">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="tb-icon"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <div id="tbar-info">
+          <div id="tbar-name"></div>
+          <div id="tbar-stat"></div>
+        </div>
+        <div id="g-search-wrap" title="搜索单词">
+          <svg class="search-icon tb-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="g-search" type="search" placeholder="搜索神经节点..." autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="g-search-results"></div>
+        </div>
+        <button id="btn-reset" title="刷新图谱">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="tb-icon"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"></path></svg>
+        </button>
+        <button id="btn-unlearned" title="高亮未学单词">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="tb-icon"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>
+        </button>
+      </div>
+    </div>
+    <div id="g-hint">点击词汇 · 双指缩放 · 可拖拽</div>
+  </div>
+
+  <!-- ═══ BOTTOM SHEET ═══ -->
+  <div id="sheet-overlay"></div>
+  <div id="bottom-sheet">
+    <div id="bs-inner">
+      <div id="bs-drag"></div>
+      <div id="bs-img-zone">
+        <div id="bs-img-placeholder">📖</div>
+        <img id="bs-img" src="" alt="">
+      </div>
+      <div id="bs-header">
+        <div id="bs-header-row">
+          <div id="bs-word-big"></div>
+          <span id="bs-pos-tag"></span>
+          <span id="bs-learned-badge"></span>
+        </div>
+        <div id="bs-logic-tag"></div>
+      </div>
+      <div id="bs-body">
+        <div id="bs-meaning-row">
+          <div id="bs-phon-row">
+            <span id="bs-phonetic"></span>
+            <span id="bs-speak-icon">♪</span>
+          </div>
+          <div id="bs-meaning"></div>
+        </div>
+        <div id="bs-rel-label">关联词汇</div>
+        <div id="bs-chips"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/starfield.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/category.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/sheet.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/events.js"></script>
+  <script>init();</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('[WordNet] SW registered:', reg.scope))
+          .catch(err => console.warn('[WordNet] SW failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
